@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Team Tracker – Board</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f5fa;--sb:#fff;--cd:#fff;--bd:#e2e6f0;--tx:#161b2e;--mut:#6a738c;--hv:#eef1f9;--ac:#3b5bfd;--sh:0 1px 2px rgba(20,30,60,.06);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#080b14;--sb:#0c101c;--cd:#131827;--bd:#222a3d;--tx:#e8ebf5;--mut:#8b94ab;--hv:#1a2133;--ac:#4a6bff;--sh:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#080b14;--sb:#0c101c;--cd:#131827;--bd:#222a3d;--tx:#e8ebf5;--mut:#8b94ab;--hv:#1a2133;--ac:#4a6bff;--sh:none;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,select,input,textarea{font:inherit;color:var(--tx);background:var(--cd);border:1px solid var(--bd);border-radius:9px;outline:0}
+button{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button:focus-visible,select:focus-visible,input:focus-visible,.card:focus-visible{box-shadow:0 0 0 2px var(--ac)}
+svg{flex:none}
+#app{display:grid;grid-template-columns:auto 1fr auto;height:100%;overflow:hidden}
+#sb{width:252px;background:var(--sb);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:16px 12px;gap:6px;transition:width .2s}
+.lg{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;padding:0 4px 8px}
+.lg i{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7c5cff,#2f6bff);display:grid;place-items:center;color:#fff}
+.lg button{margin-left:auto;padding:7px;color:var(--mut)}
+.ws{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--bd);border-radius:12px;background:var(--cd);margin-bottom:10px}
+.ws b{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--ac);color:#fff}
+.ws div{flex:1;line-height:1.25}.ws small{color:var(--mut)}
+.nv{display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;background:none;border-radius:10px;color:var(--mut);font-size:14px;width:100%;text-align:left}
+.nv:hover{background:var(--hv)}.nv.on{background:color-mix(in srgb,var(--ac) 20%,transparent);color:var(--tx);font-weight:600;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ac) 35%,transparent)}
+.nv em{margin-left:auto;font-style:normal;background:var(--hv);border-radius:7px;padding:0 7px;font-size:12px;color:var(--tx)}
+.sp{flex:1}
+.us{display:flex;align-items:center;gap:10px;border-top:1px solid var(--bd);padding:12px 4px 0;margin-top:6px}.us div{line-height:1.25;flex:1;min-width:0}.us small{color:var(--mut)}
+.mini #sb{width:68px}.mini .nl,.mini .ws div,.mini .ws>svg,.mini .lg span,.mini .us div,.mini .nv em,.mini .us>svg{display:none}.mini .lg{flex-wrap:wrap}.mini .lg button{margin:0}
+#ct{overflow:auto;min-width:0}
+.top{display:flex;align-items:center;gap:10px;padding:14px 24px}
+.bc{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:14px}.bc b{color:var(--tx);font-weight:500}
+.top .sp{flex:1}
+.srch{display:flex;align-items:center;gap:8px;background:var(--cd);border:1px solid var(--bd);border-radius:11px;padding:0 10px;width:min(300px,40vw);color:var(--mut)}
+.srch input{border:0;background:none;flex:1;padding:9px 0;min-width:0}
+kbd{font:inherit;font-size:11px;border:1px solid var(--bd);border-radius:6px;padding:1px 7px;background:var(--hv);color:var(--mut)}
+.ib{width:38px;height:38px;justify-content:center;padding:0;color:var(--mut);position:relative}
+.ib.dot::after{content:"";position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:#ef4444;border:2px solid var(--cd)}
+#mn{padding:0 24px 28px}
+.ttl{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px}
+.ttl h1{margin:0;font-size:30px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.ttl p{margin:4px 0 0;color:var(--mut);font-size:15px}.ttl .sp{flex:1}
+.st{color:#fbbf24;fill:#fbbf24}
+.stack{display:flex}.stack .av{margin-left:-8px;border:2px solid var(--bg)}.stack .av:first-child{margin:0}
+.more{width:32px;height:32px;border-radius:50%;background:var(--hv);border:2px solid var(--bg);margin-left:-8px;display:grid;place-items:center;font-size:12px;font-weight:600}
+.bo{padding:9px 14px;font-weight:500}
+.pr{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;padding:9px 14px}
+.split{display:flex;position:relative}.split .pr:first-child{border-radius:9px 0 0 9px}.split .ch{border-radius:0 9px 9px 0;border-left:1px solid rgba(255,255,255,.3);padding:9px 8px;position:relative}
+.split select{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.av{aspect-ratio:1;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:600;font-size:11px;flex:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.sc{display:flex;align-items:center;gap:14px;background:var(--cd);border:1px solid var(--bd);border-radius:14px;padding:14px;box-shadow:var(--sh)}
+.si{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);flex:none;aspect-ratio:1;min-width:46px}
+.sc>div:not(.si){flex:1;min-width:0}.sc small{color:var(--mut);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.num{display:flex;align-items:baseline;gap:8px;font-size:26px;font-weight:700;line-height:1.2}.num span{font-size:12px;font-weight:600;color:var(--c);display:inline-flex;align-items:center;gap:2px}
+.sc svg.sp2{width:52px;height:24px;color:var(--c);align-self:flex-end}
+.wb{display:flex;height:6px;border-radius:4px;overflow:hidden;gap:2px;margin:8px 0 6px}.wb i{display:block;height:100%}
+.tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.fl{position:relative;display:flex;align-items:center}.fl>span{position:absolute;left:10px;pointer-events:none;color:var(--mut);display:flex}
+.fl select{appearance:none;-webkit-appearance:none;width:138px;padding:8px 26px 8px 32px;cursor:pointer;text-overflow:ellipsis;background:var(--cd) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b94ab' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 9px center/12px no-repeat}
+.fl.s input{padding:8px 10px 8px 32px;width:190px}
+.sg{display:flex;margin-left:auto;gap:0}.sg button{border-radius:0;padding:8px 11px;justify-content:center}.sg button:first-child{border-radius:9px 0 0 9px}.sg button:last-child{border-radius:0 9px 9px 0}
+.sg button.on{background:color-mix(in srgb,var(--ac) 25%,var(--cd));border-color:var(--ac);color:var(--tx)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:9px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent);color:var(--c);font-weight:500}
+.chip button{border:0;background:none;padding:0;color:inherit}.clr{border:0;background:none;color:var(--ac);font-weight:500}
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:14px;align-items:start;overflow-x:auto;padding-bottom:6px}
+.col{--c:#64748b;border:1px solid color-mix(in srgb,var(--c) 60%,var(--bd));border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 13%,var(--cd)),color-mix(in srgb,var(--c) 3%,var(--bg)) 70%);padding:10px;min-height:280px;box-shadow:0 0 18px color-mix(in srgb,var(--c) 12%,transparent)}
+.col.ov{outline:2px dashed var(--c)}
+.ch2{display:flex;align-items:center;gap:8px;padding:2px 2px 10px;font-weight:600;font-size:15px}
+.ch2 .d{width:18px;height:18px;border-radius:50%;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 55%,transparent)}
+.ch2 .n{background:var(--hv);border-radius:8px;padding:0 8px;font-size:12px}.ch2 .sp{flex:1}
+.ch2 button{border:0;background:none;color:var(--mut);padding:4px}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px;cursor:grab;box-shadow:var(--sh)}
+.card:hover{border-color:color-mix(in srgb,var(--ac) 50%,var(--bd))}.card.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.card.drag{opacity:.4}.ft .sn{color:#d97706}
+.ttl{justify-content:space-between}.ttl>div:first-child{flex:1 1 300px;min-width:0}.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.acts .bo{padding:8px 12px}
+.sc{padding:12px;gap:12px}.si{width:42px;height:42px;min-width:42px}.num{font-size:24px}.sc .stack .av{margin-left:-5px}.sc .stack .av:first-child{margin:0}
+.tb{gap:8px 6px}
+#panel{overflow-x:hidden}.g2>*{min-width:0}#panel .g2 div input{flex:1;min-width:0}
+.tabs{gap:10px;overflow-x:auto;scrollbar-width:none}.tabs button{font-size:12.5px;white-space:nowrap;padding:8px 0}.tabs i{padding:0 5px}
+.hl{outline:3px solid var(--ac);outline-offset:3px;border-radius:10px;box-shadow:0 0 0 8px color-mix(in srgb,var(--ac) 25%,transparent);animation:pl 1.6s ease-in-out infinite}
+@keyframes pl{50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--ac) 10%,transparent)}}
+@media (prefers-reduced-motion:reduce){.hl{animation:none}}
+#gd[hidden]{display:none!important}#gd.gt{position:fixed;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;padding:0 12px;z-index:70;pointer-events:none}
+.gc{pointer-events:auto;background:var(--cd);border:1px solid var(--ac);border-radius:14px;padding:16px;width:min(460px,100%);box-shadow:0 12px 40px rgba(0,0,0,.4)}.gc h3{margin:2px 0 6px;font-size:17px}.gc p{margin:0 0 12px;color:var(--mut)}.gc small{color:var(--ac);font-weight:600}.gb{display:flex;gap:8px;align-items:center}
+#gd.gl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:70;display:grid;place-items:center;padding:16px}.gm{background:var(--cd);border:1px solid var(--bd);border-radius:14px;width:min(720px,100%);max-height:88vh;overflow:auto;padding:0 18px 18px}.gh{display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--cd);padding:14px 0 8px;z-index:1}.gh span{display:flex;gap:8px}.gm h4{margin:18px 0 6px;font-size:14px}.gm ol,.gm ul{margin:0;padding-left:20px;color:var(--mut)}.gm li{margin:5px 0}.gm li b,.gm td b{color:var(--tx)}.gm code{font-size:12px;background:var(--bg);padding:1px 5px;border-radius:4px}.gm table{width:100%;border-collapse:collapse}.gm td{padding:7px 8px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--mut)}.mt{color:var(--ac);font-weight:600}#mdd{position:fixed;top:64px;right:20px;width:min(320px,92vw);max-height:60vh;overflow:auto;background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:6px;z-index:8;box-shadow:0 12px 30px rgba(0,0,0,.25)}#mdd[hidden]{display:none}.mi{padding:8px;border-radius:8px;cursor:pointer}.mi:hover{background:var(--hv)}.mvb{display:none}@media (hover:none) and (pointer:coarse){.mvb{display:inline-flex;gap:4px}}.mvb button{padding:2px 6px}
+.ct{display:flex;justify-content:space-between;gap:6px;font-size:14px}.mo{color:var(--mut)}
+.card p{margin:4px 0 8px;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tag{--c:#818cf8;padding:2px 10px;border-radius:8px;font-size:12px;font-weight:500;color:color-mix(in srgb,var(--c) 65%,var(--tx));background:color-mix(in srgb,var(--c) 16%,transparent)}
+.ft{display:flex;align-items:center;gap:12px;color:var(--mut);font-size:12px}.ft span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.ft .r{margin-left:auto}
+.ft .od{color:#ef4444}.ft .ok{color:#22c55e}
+.lst{background:var(--cd);border:1px solid var(--bd);border-radius:12px;overflow:auto}
+.lst table{width:100%;border-collapse:collapse;min-width:640px}.lst td,.lst th{padding:10px 12px;border-bottom:1px solid var(--bd);text-align:left}.lst tr[data-id]{cursor:pointer}.lst tr[data-id]:hover{background:var(--hv)}
+.emp{background:var(--cd);border:1px dashed var(--bd);border-radius:14px;padding:40px;text-align:center;color:var(--mut)}.emp a{color:var(--ac)}
+#panel{display:none;width:344px;background:var(--sb);border-left:1px solid var(--bd);overflow:auto;padding:18px}
+#panel.open{display:block}
+.ph{display:flex;justify-content:space-between;align-items:center;color:var(--mut);margin-bottom:8px}.ph button{border:0;background:none;color:var(--mut);padding:4px}.ph span{display:flex;gap:6px;align-items:center}
+.pt{width:100%;border:0;background:none;font-size:22px;font-weight:700;padding:4px 0;margin-bottom:12px;letter-spacing:-.01em}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g2 label{color:var(--mut);font-size:12px;display:block}
+.g2 select,.g2 input{width:100%;margin-top:4px;padding:9px 10px;color:var(--tx)}
+.tabs{display:flex;gap:16px;border-bottom:1px solid var(--bd);margin:14px 0}.tabs button{border:0;border-bottom:2px solid transparent;background:none;border-radius:0;padding:8px 0;color:var(--mut)}.tabs button.on{color:var(--ac);border-color:var(--ac);font-weight:600}
+.tabs i{font-style:normal;background:var(--hv);border-radius:6px;padding:0 6px;font-size:11px}
+#panel h4{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;font-size:14px}#panel h4 button{border:0;background:none;color:var(--ac);font-size:12px;padding:0}
+#panel h4 span{color:var(--mut);font-weight:400}
+.dsc{color:var(--mut);margin:0}#panel textarea{width:100%;resize:vertical}
+.lb{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lb .tag{padding:5px 14px;font-size:13px;border-radius:20px}
+.lb select{appearance:none;-webkit-appearance:none;width:30px;height:30px;border-radius:50%;text-align:center;padding:0;cursor:pointer;color:transparent;background:var(--cd) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b94ab' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M5 12h14M12 5v14'/%3E%3C/svg%3E") center no-repeat}
+.sb{display:flex;align-items:center;gap:10px;padding:5px 0;cursor:pointer}.sb input{width:16px;height:16px;accent-color:var(--ac);margin:0}.sb.d span{text-decoration:line-through;color:var(--mut)}
+.nsub{width:100%;margin-top:6px;padding:7px 10px}
+.cm{display:flex;gap:10px;margin-bottom:12px}.cm small{color:var(--mut)}.cm p{margin:2px 0 0;color:var(--mut)}
+.ci{display:flex;gap:8px;align-items:center;margin-top:10px}.ci input{flex:1;padding:9px 10px}.ci button{border:0;background:none;color:var(--mut);padding:4px}.ci .snd{background:var(--ac);color:#fff;border-radius:8px;padding:8px}
+.bx{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)}.bx>b{font-size:15px}.bx .g2 textarea,.bx>textarea,.bx>input{width:100%;margin-top:4px;padding:9px 10px;resize:vertical}.bx pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow:auto;font-size:12px;margin:8px 0}.gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.bx small{color:var(--mut);display:block}.wr{color:#d97706;margin:4px 0}.bx a{color:var(--ac)}
+#toast{display:none;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:9px 14px;border-radius:9px;z-index:9;max-width:90vw}
+@media (max-width:1180px){#panel{position:fixed;right:0;top:0;bottom:0;z-index:5;box-shadow:-10px 0 30px rgba(0,0,0,.3)}}
+@media (max-width:820px){#sb{width:68px}.nl,.ws div,.ws>svg,.lg span,.us div,.nv em,.us>svg{display:none}.lg{flex-wrap:wrap}.lg button{margin:0}#panel{width:100%}.top,#mn{padding-left:14px;padding-right:14px}.sg{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+#auth{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:20px}#auth[hidden]{display:none}
+.ac{width:min(380px,100%);background:var(--cd);border:1px solid var(--bd);border-radius:16px;padding:24px;box-shadow:var(--sh)}
+.ac>b{font-size:18px;display:block;margin-bottom:6px}.ac p{color:var(--mut);margin:4px 0 12px}.ac label{display:block;color:var(--mut);font-size:12px;margin-top:10px}
+.ac input{width:100%;margin-top:4px;padding:10px}.ac .pr{width:100%;justify-content:center;margin-top:16px;padding:11px}
+.ac .sw{background:none;border:0;color:var(--ac);padding:0;margin-top:12px}.ac #am{color:#d97706;margin-top:10px;min-height:18px}
+</style></head>
+<body>
+<div id="app">
+<aside id="sb">
+ <div class="lg"><i data-i="rocket" data-s="18"></i><span>Team Tracker</span><button id="col" aria-label="Collapse sidebar" data-i="panel"></button></div>
+ <div class="ws"><b>A</b><div><b style="background:none;display:block;width:auto;height:auto;color:var(--tx)">Acme Studio</b><small>Engineering Team</small></div><span data-i="chev"></span></div>
+ <button class="nv on" data-v="board"><span data-i="board" data-s="19"></span><span class="nl">Board</span></button>
+ <button class="nv" data-v="my"><span data-i="check" data-s="19"></span><span class="nl">My Tasks</span><em id="myc">3</em></button>
+ <button class="nv" data-v="standup"><span data-i="clip" data-s="19"></span><span class="nl">Daily Standup</span></button>
+ <button class="nv" data-v="team"><span data-i="users" data-s="19"></span><span class="nl">Team</span></button>
+ <button class="nv" data-v="git"><span data-i="git" data-s="19"></span><span class="nl">Git &amp; PRs</span></button>
+ <button class="nv" data-v="ctx"><span data-i="file" data-s="19"></span><span class="nl">Context &amp; Prompts</span></button>
+ <div class="sp"></div>
+ <button class="nv" data-a="guide"><span data-i="help" data-s="19"></span><span class="nl">How-to guide</span></button>
+ <button class="nv" data-v="set"><span data-i="gear" data-s="19"></span><span class="nl">Settings</span></button>
+ <div class="us"><span id="uav"></span><div><b id="un">You</b><br><small id="ur"></small></div><span data-i="more"></span></div>
+</aside>
+<div id="ct">
+ <div class="top">
+  <div class="bc"><span data-i="board"></span>Engineering<span data-i="chevr" data-s="14"></span><b id="bcn">Board</b></div><div class="sp"></div>
+  <label class="srch"><span data-i="search"></span><input id="gs" placeholder="Search anything..."><kbd>Ctrl K</kbd></label>
+  <button class="ib" id="hlp" data-a="guide" aria-label="How-to guide" title="How-to guide" data-i="help" data-s="18"></button>
+  <button class="ib" id="th" aria-label="Toggle theme"></button>
+  <button class="ib dot" id="bell" aria-label="Notifications" data-i="bell"></button>
+ </div>
+ <div id="mn">
+  <div class="ttl"><div><h1><span id="ht">Team board</span> <span class="st" data-i="star" data-s="22"></span></h1><p id="hs">Track, manage, and ship work together.</p></div><div class="acts"><div class="stack" id="stk"></div>
+   <button class="bo" data-a="gosync"><span data-i="git"></span>Sync GitHub</button><button class="bo" data-a="inv"><span data-i="userp"></span>Invite members</button>
+   <div class="split"><button class="pr" data-a="new"><span data-i="plus"></span>New task</button><button class="pr ch" aria-label="New task in column"><span data-i="chev"></span><select id="nsel" aria-label="Create in column"><option value="">&nbsp;</option><option value="todo">To do</option><option value="doing">In progress</option><option value="review">In review</option><option value="done">Done</option></select></button></div></div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="tb">
+   <label class="fl s"><span data-i="search"></span><input id="ts" placeholder="Search tasks..."></label>
+   <label class="fl"><span data-i="user"></span><select id="fa"></select></label>
+   <label class="fl"><span data-i="clock"></span><select id="fs"></select></label>
+   <label class="fl"><span data-i="flag"></span><select id="fp"></select></label>
+   <label class="fl"><span data-i="cal"></span><select id="fd"><option value="">Due date</option><option value="over">Overdue</option><option value="wk">Next 7 days</option></select></label>
+   <label class="fl"><span data-i="tag"></span><select id="fb"></select></label>
+   <label class="fl"><select id="so" style="padding-left:12px"><option value="u">Sort: Updated</option><option value="d">Sort: Due date</option><option value="p">Sort: Priority</option></select></label>
+   <div class="sg"><button class="on" data-vw="b" aria-label="Board view"><span data-i="board"></span>Board</button><button data-vw="l" aria-label="List view" data-i="list"></button></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div id="main"></div>
+ </div>
+</div>
+<aside id="panel"></aside>
+<div id="gd" hidden></div>
+<div id="mdd" hidden></div>
+<div id="toast" role="status"></div>
+<div id="auth" hidden></div>
+</div>
+<script>
+const IC={rocket:'<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-4 12.4 12.4 0 0 1 11-6c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2zM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',panel:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',chev:'<path d="m6 9 6 6 6-6"/>',chevr:'<path d="m9 6 6 6-6 6"/>',board:'<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="11" rx="1.5"/>',check:'<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',clip:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9zM9 12l2 2 4-4M9 17h6"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',git:'<path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/><circle cx="12" cy="12" r="7"/>',more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',star:'<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',userp:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',plus:'<path d="M5 12h14M12 5v14"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',tag:'<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',msg:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',edit:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',up:'<path d="m5 12 7-7 7 7M12 19V5"/>',smile:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>',clipx:'<path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',send:'<path d="m22 2-11 11M22 2l-7 20-4-9-9-4z"/>',gauge:'<path d="M3 12a9 9 0 1 1 18 0M12 12l4-4"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4M12 17h.01"/>'};
+const ic=(n,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.querySelectorAll('[data-i]').forEach(e=>e.innerHTML=ic(e.dataset.i,+e.dataset.s||16));
+let M=[['m','Manav Budhia','#6366f1'],['r','Rahul Sharma','#0ea5e9'],['p','Priya Mehta','#ec4899'],['a','Aman Verma','#f59e0b'],['s','Sneha Rao','#10b981'],['k','Karan Singh','#8b5cf6'],['d','Divya Nair','#ef4444']];
+const DEMO=M.slice();const DRAFT={};let MSIG='',PEOPLE={},ME_ID='m',ME=null,SMP=null,SUM='',DL=null,RM=null,PEERS=[],LPR='',SEEN=0,QS='',DR={},UNDO=null,CFG={wip:3,rev:true};
+const mn=id=>(M.find(m=>m[0]===id)||['','Unassigned'])[1];
+const safeCol=c=>/^#[0-9a-f]{3,8}$/i.test(c||'')?c:'#6366f1';
+const av=(id,z=32)=>{const m=M.find(x=>x[0]===id);return m?`<span class="av" title="${esc(m[1])}" style="width:${z}px;height:${z}px;font-size:${Math.max(8,z/3)}px;background:linear-gradient(135deg,${safeCol(m[2])},color-mix(in srgb,${safeCol(m[2])} 55%,#000))">${esc(String(m[1]).split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,3))}</span>`:`<span class="av" style="width:${z}px;height:${z}px;background:var(--hv);color:var(--mut)">?</span>`};
+const ST=[['todo','To do','#64748b'],['doing','In progress','#3b82f6'],['review','In review','#f59e0b'],['done','Done','#22c55e']];
+const PR={High:'#f87171',Medium:'#fbbf24',Low:'#4ade80'},PO={High:3,Medium:2,Low:1};
+const TC={Product:'#818cf8',Growth:'#34d399',Backend:'#60a5fa',Auth:'#60a5fa',UX:'#a78bfa',Docs:'#60a5fa',Analytics:'#a78bfa',Frontend:'#34d399',QA:'#60a5fa',Performance:'#34d399',Design:'#f472b6'};
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+let TD=ymd(new Date());const plus=n=>{const d=new Date();d.setDate(d.getDate()+n);return ymd(d)};
+const fd=d=>d?new Date(d+'T00:00').toLocaleDateString('en',{month:'short',day:'numeric'}):'No date';
+const tag=n=>n?`<span class="tag" style="--c:${TC[n]||'#818cf8'}">${esc(n)}</span>`:'';
+const pri=p=>`<span class="tag" style="--c:${PR[p]}">${p}</span>`;
+const mk=(t,d,tags,pr,due,as,st,sd,sn,cm,x={})=>({t,d,tags,pr,due,as,st,bl:!!x.bl,u:Date.now()-(x.o||0),sub:Array.from({length:sn},(_,i)=>({t:(x.sn||[])[i]||'Step '+(i+1),d:i<sd})),cm:x.cm||Array.from({length:cm},()=>({a:'p',t:'Looks good, picking this up.',w:'3 days ago'}))});
+const SEED=[
+mk('Refine onboarding flow','Improve the first time user experience for new signups. Focus on reducing friction and increasing completion rate.',['Product','Growth'],'High','2026-10-12','r','todo',0,5,3,{sn:['Review current onboarding flow','Identify drop-off points','Design improved flow','Implement new screens','Test and validate'],cm:[{a:'p',t:'I\'ve shared the latest UX flow in Figma. Please review and share feedback.',w:'2 days ago'},{a:'r',t:'Will check the drop-off numbers today.',w:'2 days ago'},{a:'m',t:'Great, let\'s sync in standup.',w:'3 days ago'}]}),
+mk('Add team invite permissions','Allow admins to manage team invitations and roles.',['Auth'],'Medium','2026-10-15','m','todo',0,3,1,{o:1e3}),
+mk('Audit empty states','Review and improve empty states across the app.',['UX'],'Low','2026-10-20','s','todo',0,4,2,{o:2e3}),
+mk('Create help content','Write help docs for core features.',['Docs'],'Low','2026-10-25','k','todo',0,2,1,{o:3e3}),
+mk('Fix webhook retry logic','Handle failed webhooks with retry mechanism and better logging.',['Backend'],'High','2026-10-11','a','doing',2,5,4,{bl:1,o:4e3}),
+mk('Build analytics dashboard','Add key metrics and charts for team performance.',['Analytics'],'Medium','2026-10-14','p','doing',1,4,3,{o:5e3}),
+mk('Improve search performance','Optimize search queries and reduce response time.',['Performance'],'Medium','2026-10-18','d','doing',2,3,1,{o:6e3}),
+mk('Review analytics dashboard','Check charts, filters and data accuracy before release.',['Analytics'],'High','2026-10-10','m','review',4,4,5,{o:7e3}),
+mk('Update API docs','Add new endpoints and examples.',['Docs'],'Medium','2026-10-13','k','review',3,3,2,{o:8e3}),
+mk('Design system updates','Review new components and tokens for consistency.',['Design'],'Low','2026-10-16','p','review',2,2,1,{o:9e3}),
+mk('Ship new settings page','Release the updated settings page with all preferences.',['Frontend'],'Medium','2026-10-08','r','done',5,5,4,{o:1e4}),
+mk('QA responsive layout','Test on different screen sizes and fix issues.',['QA'],'Low','2026-10-09','s','done',3,3,2,{o:11e3})
+].map((t,i)=>({...t,id:1042+i}));
+let S={tasks:[],stand:[],prompts:[],usage:[],ctx:''},sel=null,db=null,view='board',vw='b',ptab='d',edD=false,dragId=null,tm;
+const F={q:'',as:'',st:'',pr:'',due:'',lb:'',so:'u'};
+const cur=()=>S.tasks.find(t=>t.id===sel);
+const od=t=>t.due&&t.due<TD&&t.st!=='done';
+const cj=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+const R={tasks:{},standups:{},prompts:{},usage:{},ctx:'',cfg:'{"rev":true,"wip":3}'},KEY={tasks:'tasks',standups:'stand',prompts:'prompts',usage:'usage'};
+let busy=false,again=false,pend=false,LE=0;const FRESH=new Set();
+const lerr=e=>{if(Date.now()-LE>15000){LE=Date.now();toast('Live sync problem: '+((e&&e.message)||'check your access level'))}};
+const uid=()=>Date.now()*1000+Math.floor(Math.random()*1000);
+const nextId=()=>Math.max(1041,...S.tasks.map(t=>+t.id||0),...Object.keys(R.tasks).map(Number).filter(Number.isFinite))+1;
+function reid(o){const old=o.id;o.id=nextId();if(sel===old)sel=o.id;FRESH.delete(old);FRESH.add(o.id)}
+function save(){clearTimeout(tm);tm=setTimeout(flush,350)}
+async function flush(){if(!db)return;if(busy){again=true;return}busy=true;
+ try{for(const c in KEY){
+  for(const o of [...S[KEY[c]]]){
+   if(R[c][String(o.id)]===cj(o))continue;
+   if(c==='tasks'&&FRESH.has(o.id)){
+    for(let n=0;n<5;n++){let ex=null;try{ex=await db.doc('tasks/'+o.id).get()}catch(e){break}
+     if(!(ex&&ex.exists)||(ex.data()||{}).cr===o.cr)break;reid(o)}}
+   if(!S[KEY[c]].includes(o))continue;
+   const k=String(o.id),j=cj(o);if(R[c][k]===j)continue;
+   await db.doc(c+'/'+k).set(JSON.parse(j));R[c][k]=j;if(c==='tasks')FRESH.delete(o.id)}
+  for(const k of Object.keys(R[c])){if(S[KEY[c]].some(o=>String(o.id)===k))continue;await db.doc(c+'/'+k).delete();delete R[c][k]}}
+  if(S.ctx!==R.ctx){const b=R.ctx;let st=b;
+   try{const g=await db.doc('meta/context').get();if(g&&g.exists)st=String((g.data()||{}).text||'')}catch(e){}
+   const loc=S.ctx,v=st!==b?merge3(b,loc,st):loc;
+   if(v!==st)await db.doc('meta/context').set({text:v});
+   R.ctx=v;if(S.ctx===loc)S.ctx=v;LW={base:st,text:v,at:Date.now()}}
+  if(cj(CFG)!==R.cfg){const v=cj(CFG);await db.doc('meta/settings').set(JSON.parse(v));R.cfg=v}
+ }catch(e){toast('Could not save: '+((e&&e.message)||'check your access level'))}
+ busy=false;if(again){again=false;flush()}}
+const isO=v=>v&&typeof v==='object'&&!Array.isArray(v);
+let CXB='',LW=null,PPL=false,TSK=false,demoDone=false,PRES;const PREADY=new Promise(r=>{PRES=r});
+/* line diff: changed regions of a -> b */
+function hunks(a,b){const n=a.length,m=b.length,dp=Array.from({length:n+1},()=>new Int32Array(m+1));
+ for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+ const out=[];let i=0,j=0,cur=null;
+ while(i<n||j<m){if(i<n&&j<m&&a[i]===b[j]){if(cur){out.push(cur);cur=null}i++;j++}
+  else{if(!cur)cur={as:i,ae:i,bs:j,be:j};
+   if(j<m&&(i>=n||dp[i][j+1]>=dp[i+1][j])){j++;cur.be=j}else{i++;cur.ae=i}}}
+ if(cur)out.push(cur);return out}
+/* 3-way merge of text; the result is the same whichever side is "local" so every client converges */
+function merge3(base,loc,rem){if(loc===rem)return loc;if(loc===base)return rem;if(rem===base)return loc;
+ /* a text that already holds a conflict block (made by a teammate's merge) is final: adopt it if it covers our lines, never merge into it again */
+ const mk=x=>x.includes('<<<<<<<'),nm=x=>mk(x)&&!mk(base),cov=(a,b)=>{const z=new Set(b.split('\n'));return a.split('\n').every(l=>z.has(l))};
+ if(nm(loc)||nm(rem)){if(nm(rem)&&cov(loc,rem))return rem;if(nm(loc)&&cov(rem,loc))return loc;return loc>rem?loc:rem}
+ const B=base.split('\n'),L=loc.split('\n'),Q=rem.split('\n');
+ const pair=(x,y)=>['<<<<<<<',...(x<y?[...L,'=======',...Q]:[...Q,'=======',...L]),'>>>>>>>'].join('\n');
+ if(B.length*Math.max(L.length,Q.length)>4e6)return pair(loc,rem);
+ const hl=hunks(B,L),hr=hunks(B,Q),out=[];let pos=0,x=0,y=0;
+ while(x<hl.length||y<hr.length){const a=hl[x],b=hr[y];
+  if(a&&(!b||a.ae<b.as)){out.push(...B.slice(pos,a.as),...L.slice(a.bs,a.be));pos=a.ae;x++}
+  else if(b&&(!a||b.ae<a.as)){out.push(...B.slice(pos,b.as),...Q.slice(b.bs,b.be));pos=b.ae;y++}
+  else{let as=Math.min(a.as,b.as),ae=Math.max(a.ae,b.ae),xi=x+1,yi=y+1;
+   for(let go=true;go;){go=false;
+    if(xi<hl.length&&hl[xi].as<=ae){ae=Math.max(ae,hl[xi].ae);xi++;go=true}
+    if(yi<hr.length&&hr[yi].as<=ae){ae=Math.max(ae,hr[yi].ae);yi++;go=true}}
+   const build=(H,i0,i1,S)=>{const o=[];let q=as;for(let k=i0;k<i1;k++){o.push(...B.slice(q,H[k].as),...S.slice(H[k].bs,H[k].be));q=H[k].ae}o.push(...B.slice(q,ae));return o};
+   const lv=build(hl,x,xi,L),rv=build(hr,y,yi,Q),ls=lv.join('\n'),rs_=rv.join('\n');
+   out.push(...B.slice(pos,as));
+   if(ls===rs_)out.push(...lv);else out.push('<<<<<<<',...(ls<rs_?[...lv,'=======',...rv]:[...rv,'=======',...lv]),'>>>>>>>');
+   pos=ae;x=xi;y=yi}}
+ out.push(...B.slice(pos));return out.join('\n')}
+/* a remote context version arrived */
+function ctxIn(t){const base=R.ctx,loc=S.ctx;if(t===base)return;
+ let m=loc===base?t:merge3(base,loc,t);
+ if(LW&&Date.now()-LW.at<1e4&&t!==LW.text&&loc===LW.text&&m===t)m=merge3(LW.base,LW.text,t); /* our save was overwritten by a concurrent one: put it back */
+ R.ctx=t;S.ctx=m;
+ if(DRAFT.cx!=null){DRAFT.cx=merge3(CXB,DRAFT.cx,t);CXB=t}
+ if(m!==t)save()}
+/* in-progress limit: checked locally, then settled deterministically once everyone's moves have arrived */
+const wipMsg=t=>CFG.wip&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip?mn(t.as)+' already has '+CFG.wip+' tasks in progress.':'';
+function enforceWip(){const w=CFG.wip;if(!w)return;const by={};
+ S.tasks.forEach(t=>{if(t.st==='doing'&&t.as)(by[t.as]=by[t.as]||[]).push(t)});let ch=false;
+ for(const p in by){const over=by[p].length-w;if(over<=0)continue;
+  by[p].filter(t=>t.dat&&Date.now()-t.dat<12e4).sort((a,b)=>b.dat-a.dat||b.id-a.id).slice(0,over).forEach(t=>{
+   const to=t.pst&&t.pst!=='doing'&&ST.some(z=>z[0]===t.pst)?t.pst:'todo';
+   t.st=to;t.u=t.dat+1;t.log=[{w:t.dby||'',x:'was moved back to '+lb(to)+': in-progress limit of '+w+' reached',at:t.dat+1},...(t.log||[])].slice(0,40);ch=true;
+   if(t.dby===ME_ID)toast(mn(p)+' already has '+w+' tasks in progress, so "'+t.t+'" went back to '+lb(to)+'.')})}
+ if(ch)save()}
+/* demo people (r, p, a ...) -> real teammates, same answer on every client */
+function demoMapper(){const real=Object.keys(PEOPLE).sort(),ids=DEMO.map(m=>m[0]);
+ const f=x=>{const i=ids.indexOf(x);return i>=0&&!PEOPLE[x]&&real.length?real[i%real.length]:x};
+ return t=>{t.as=f(t.as);if(t.rv)t.rv=f(t.rv);(t.cm||[]).forEach(c=>{c.a=f(c.a)});return t}}
+function demoFix(){if(demoDone||!PPL||!TSK||!Object.keys(PEOPLE).length)return;demoDone=true;
+ const dm=demoMapper();let ch=false;S.tasks.forEach(t=>{const b=cj(t);dm(t);if(cj(t)!==b)ch=true});if(ch)save()}
+function m3(b,l,r){const L=cj(l),Q=cj(r),B=cj(b);
+ if(L===Q)return l;if(L===B)return r;if(Q===B)return l;
+ if(isO(l)&&isO(r)){const o={},bb=isO(b)?b:{};new Set([...Object.keys(l),...Object.keys(r)]).forEach(k=>{const v=m3(bb[k],l[k],r[k]);if(v!==undefined)o[k]=v});return o}
+ if(Array.isArray(l)&&Array.isArray(r)){const bb=Array.isArray(b)?b:[];
+  if(l.length===r.length&&l.length===bb.length)return l.map((x,i)=>m3(bb[i],x,r[i]));
+  const sb=new Set(bb.map(cj)),sl=new Set(l.map(cj)),sr=new Set(r.map(cj)),seen=new Set(),fresh=[];
+  [...l,...r].forEach(x=>{const q=cj(x);if(!sb.has(q)&&!seen.has(q)){seen.add(q);fresh.push(x)}});
+  const keep=bb.filter(x=>sl.has(cj(x))&&sr.has(cj(x))),stamped=fresh.length&&fresh.every(x=>isO(x)&&typeof x.at==='number');
+  if(stamped){fresh.sort((x,y)=>y.at-x.at);return[...fresh,...keep]}return[...keep,...fresh]}
+ return l}
+function merge(c,snap){const arr=S[KEY[c]];
+ snap.docChanges().forEach(ch=>{const k=ch.doc.id;if(c!=='usage'&&!/^\d+$/.test(k))return;
+  const base=R[c][k];let i=arr.findIndex(o=>String(o.id)===k);
+  if(ch.type==='removed'){delete R[c][k];if(i>=0&&cj(arr[i])===base)arr.splice(i,1);return}
+  const d=JSON.parse(cj(ch.doc.data()));if(c==='tasks')norm(d);if(c!=='usage')d.id=+k;
+  if(c==='tasks'&&i>=0&&FRESH.has(arr[i].id)&&d.cr!==arr[i].cr){reid(arr[i]);i=-1;save()}
+  R[c][k]=cj(d);
+  if(i<0){if(base===undefined)arr.push(d);return}
+  if(cj(arr[i])===base){arr[i]=d;return}
+  const m=m3(base===undefined?{}:JSON.parse(base),arr[i],d);arr[i]=m;if(cj(m)!==R[c][k])save()});
+ arr.sort((a,b)=>a.id>b.id?1:a.id<b.id?-1:0)}
+function rs(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&($('#panel').contains(a)||$('#mn').contains(a))){pend=true;return}render()}
+let PD=false;
+document.addEventListener('pointerdown',()=>{PD=true},true);
+document.addEventListener('pointerup',()=>setTimeout(()=>{PD=false},60),true);
+document.addEventListener('pointercancel',()=>{PD=false},true);addEventListener('blur',()=>{PD=false});
+const fo=()=>{if(PD)return setTimeout(fo,80);if(pend){pend=false;rs()}};
+document.addEventListener('focusout',()=>setTimeout(fo,200));
+function rebuildM(){const ks=Object.keys(PEOPLE);if(ME_ID!=='m'&&!PEOPLE[ME_ID])ks.push(ME_ID);M=ks.length?ks.map(k=>[k,String((PEOPLE[k]||{}).n||(k===ME_ID&&ME&&ME.name)||'Teammate'),safeCol((PEOPLE[k]||{}).c||(ME&&ME.color))]):DEMO.slice();
+ const sg=M.map(m=>m[0]+'|'+m[1]).join();if(sg!==MSIG){MSIG=sg;opts()}}
+function who(){const m=M.find(x=>x[0]===ME_ID);$('#uav').innerHTML=av(ME_ID,38);$('#un').textContent=m?m[1]:'You';$('#ur').textContent=ME&&ME.id?(ME.isOwner?'Owner':ME.canEdit?'Editor':'Teammate'):'Not signed in'}
+async function seed(){let d=null,done=false;
+ try{const m=await db.doc('meta/seeded').get();done=!!(m&&m.exists)}catch(e){}
+ if(done)return;
+ await Promise.race([PREADY,new Promise(r=>setTimeout(r,2500))]);
+ try{const l=await db.doc('app/state').get();d=l.exists?l.data():null}catch(e){}
+ const cl=o=>JSON.parse(JSON.stringify(o)),add=(arr,src)=>(src||[]).forEach(o=>{if(!arr.some(x=>String(x.id)===String(o.id)))arr.push(cl(o))});
+ const dm=demoMapper();add(S.tasks,((d&&d.tasks)||SEED).map(t=>dm(cl(t))));add(S.stand,d&&d.stand);add(S.prompts,d&&d.prompts);if(d&&d.ctx&&!S.ctx)S.ctx=d.ctx;
+ S.tasks.forEach(norm);S.tasks.sort((a,b)=>a.id-b.id);
+ try{await db.doc('meta/seeded').set({at:Date.now()})}catch(e){}
+ save();rs()}
+const LOGF={st:'status',as:'assignee',pr:'priority',due:'due date',ps:'PR status',rv:'reviewer',bl:'blocked',branch:'branch',t:'title'};
+const fv=(k,v)=>k==='st'?lb(v):(k==='as'||k==='rv')?(v?mn(v):'none'):k==='bl'?(v?'yes':'no'):k==='due'?fd(v):(v||'none');
+function upd(id,fn){const t=S.tasks.find(x=>x.id===id);if(!t)return;const b={};for(const k in LOGF)b[k]=t[k];fn(t);if(b.st!==t.st){t.pst=b.st;t.dby=ME_ID;if(t.st==='doing')t.dat=Date.now()}t.log=t.log||[];for(const k in LOGF)if((b[k]||'')!==(t[k]||''))t.log.unshift({w:ME_ID,x:'changed '+LOGF[k]+' to '+fv(k,t[k]),at:Date.now()});t.log=t.log.slice(0,40);t.u=Date.now();save();render()}
+function list(){
+ let r=S.tasks.filter(t=>(!F.q||(t.t+t.d).toLowerCase().includes(F.q))&&(!F.as||t.as===F.as)&&(!F.st||t.st===F.st)&&(!F.pr||t.pr===F.pr)&&(!F.lb||t.tags.includes(F.lb))&&(!F.due||(F.due==='over'?od(t):t.due>=TD&&t.due<=plus(7))));
+ const NOD='9999-12-31';return r.sort((a,b)=>F.so==='d'?(a.due||NOD).localeCompare(b.due||NOD):F.so==='p'?(PO[b.pr]||0)-(PO[a.pr]||0):(b.u||0)-(a.u||0))}
+const card=t=>{const n=t.sub.length,dn=t.sub.filter(s=>s.d).length;return `<div class="card${t.id===sel?' on':''}" tabindex="0" draggable="true" data-id="${t.id}"><div class="ct"><b>${esc(t.t)}</b></div><p>${esc(t.d)}</p><div class="tg">${tag(t.tags[0])}${t.st!=='done'?pri(t.pr):''}${t.bl&&t.st!=='done'?'<span class="tag" style="--c:#ef4444">Blocked</span>':''}</div><div class="ft"><span class="${od(t)?'od':dsoon(t)?'sn':''}">${ic('cal',14)}${fd(t.due)}</span><span>${ic('msg',14)}${t.cm.length}</span><span class="${n&&dn===n?'ok':''}">${ic('check',14)}${dn}/${n}</span><span title="Viewing now" style="display:inline-flex;gap:2px">${vwr(t.id)}</span><span class="mvb"><button data-a="mv" data-id="${t.id}" data-d="-1" aria-label="Move left">${ic('chevr',12).replace('<svg','<svg style="transform:scaleX(-1)"')}</button><button data-a="mv" data-id="${t.id}" data-d="1" aria-label="Move right">${ic('chevr',12)}</button></span><span class="r">${av(t.as,26)}</span></div></div>`};
+function stats(){const T=S.tasks,dn=T.filter(t=>t.st==='done').length,sn=T.filter(dsoon).length;
+ const C=[['Active tasks',T.length-dn,'#6d7bff',dn+' done','file'],['Overdue',T.filter(od).length,'#f87171',sn+' due soon','cal'],['In review',T.filter(t=>t.st==='review').length,'#38bdf8','waiting on a reviewer','gauge'],['Blocked',T.filter(t=>t.bl&&t.st!=='done').length,'#f87171','need help','alert']];
+ const ppl={};T.filter(t=>t.st!=='done'&&t.as).forEach(t=>ppl[t.as]=(ppl[t.as]||0)+1);const top=Object.keys(ppl).sort((x,y)=>ppl[y]-ppl[x]);
+ return C.map(c=>`<div class="sc" style="--c:${c[2]}"><div class="si">${ic(c[4],22)}</div><div><small>${c[0]}</small><div class="num">${c[1]}</div><small>${c[3]}</small></div></div>`).join('')+`<div class="sc" style="--c:#22c55e"><div class="si">${ic('users',22)}</div><div><small>Workload</small><div class="wb">${ST.map(x=>`<i style="flex:${T.filter(t=>t.st===x[0]).length};background:${x[2]}"></i>`).join('')}</div><div class="stack">${top.slice(0,3).map(i=>av(i,20)).join('')}${top.length>3?`<span style="font-size:11px;color:var(--mut);margin-left:6px">+${top.length-3}</span>`:''}</div></div></div>`}
+function chips(){const c=[];const a=(k,l,v,col)=>v&&c.push(`<span class="chip" style="--c:${col}">${l}: ${esc(v)}<button data-a="rm" data-k="${k}" aria-label="Remove filter">${ic('x',13)}</button></span>`);
+ a('as','Assignee',F.as&&mn(F.as).split(' ')[0],'#6d7bff');a('st','Status',F.st&&ST.find(s=>s[0]===F.st)[1],'#38bdf8');a('pr','Priority',F.pr,PR[F.pr]||'#f87171');a('due','Due date',F.due&&(F.due==='over'?'Overdue':'Next 7 days'),'#6d7bff');a('lb','Label',F.lb,'#34d399');
+ return c.join('')+(c.length?'<button class="clr" data-a="clr">Clear all</button>':'')}
+function main(){
+ if(view!=='board')return ({standup:vStandup,team:vTeam,git:vGit,ctx:vCtx,set:vSet}[view]||(()=>''))();
+ const L=list();
+ if(vw==='l')return `<div class="lst"><table><tr><th>Task</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due</th></tr>${L.map(t=>`<tr data-id="${t.id}"><td><b>${esc(t.t)}</b></td><td>${ST.find(s=>s[0]===t.st)[1]}</td><td>${pri(t.pr)}</td><td>${esc(mn(t.as))}</td><td class="${od(t)?'od':''}" style="${od(t)?'color:#ef4444':''}">${fd(t.due)}</td></tr>`).join('')||'<tr><td colspan="5">No tasks match these filters.</td></tr>'}</table></div>`;
+ return `<div class="board">${ST.map(([k,l,c])=>{const x=L.filter(t=>t.st===k);return `<section class="col" style="--c:${c}" data-s="${k}"><div class="ch2"><i class="d"></i>${l}<span class="n">${x.length}</span><span class="sp"></span><button data-a="addc" data-s="${k}" aria-label="Add task to ${l}">${ic('plus',18)}</button></div>${x.map(card).join('')}</section>`}).join('')}</div>`}
+function panel(){const t=cur(),P=$('#panel');if(!t){P.classList.remove('open');return}P.classList.add('open');
+ const n=t.sub.length,dn=t.sub.filter(s=>s.d).length,all=ptab==='d';
+ const sec=k=>all||ptab===k;
+ P.innerHTML=`<div class="ph"><span>${ic('file')} TASK-${t.id}</span><span><button data-a="del" aria-label="Delete task">${ic('trash')}</button><button data-a="close" aria-label="Close panel">${ic('x',18)}</button></span></div>
+ <input class="pt" id="pt" value="${esc(t.t)}" aria-label="Task title">
+ <div class="g2"><label>Status<select id="ps">${ST.map(s=>`<option value="${s[0]}"${t.st===s[0]?' selected':''}>${s[1]}</option>`).join('')}</select></label>
+ <label>Priority<select id="pp" style="color:${PR[t.pr]}">${Object.keys(PR).map(p=>`<option${t.pr===p?' selected':''}>${p}</option>`).join('')}</select></label>
+ <label>Assignee<select id="pa">${M.map(m=>`<option value="${esc(m[0])}"${t.as===m[0]?' selected':''}>${esc(m[1])}</option>`).join('')}</select></label>
+ <label>Due date<input type="date" id="pd" value="${esc(t.due||'')}"></label></div>
+ <label class="sb" style="margin-top:10px"><input type="checkbox" id="pbl"${t.bl?' checked':''}><span>Blocked</span></label>${t.bl?`<input class="nsub" id="pbr" value="${esc(t.blr||'')}" placeholder="What is blocking this task?">`:''}
+ <div class="tabs">${[['d','Details'],['s','Subtasks',`${dn}/${n}`],['c','Comments',t.cm.length],['a','Activity']].map(x=>`<button data-a="tab" data-t="${x[0]}" class="${ptab===x[0]?'on':''}">${x[1]}${x[2]!=null?` <i>${x[2]}</i>`:''}</button>`).join('')}</div>
+ ${sec('d')?`<h4>Description <button data-a="edd">${ic('edit',13)} ${edD?'Done':'Edit'}</button></h4>${edD?`<textarea id="pds" rows="4">${esc(t.d)}</textarea>`:`<p class="dsc">${esc(t.d)}</p>`}
+ <h4>Labels</h4><div class="lb">${t.tags.map(l=>`<span class="tag" style="--c:${TC[l]||'#818cf8'}">${esc(l)}</span>`).join('')}<select id="plb" aria-label="Add label"><option value="">+</option>${Object.keys(TC).filter(l=>!t.tags.includes(l)).map(l=>`<option>${l}</option>`).join('')}</select></div>
+ <h4>Git</h4><div class="g2"><label style="grid-column:1/3">Branch<div style="display:flex;gap:6px;margin-top:4px"><input id="gb" style="margin:0" value="${esc(t.branch||'')}" placeholder="feature/login-page"><button class="bo" data-a="autobr">Auto</button></div></label><label style="grid-column:1/3">Pull request link<input id="gl" value="${esc(t.prUrl||'')}" placeholder="https://github.com/org/repo/pull/12"></label><label>PR status<select id="gp"><option value="">No PR</option><option value="open"${t.ps==='open'?' selected':''}>Open</option><option value="merged"${t.ps==='merged'?' selected':''}>Merged</option></select></label><label>Reviewer<select id="gr"><option value="">None</option>${M.map(m=>`<option value="${esc(m[0])}"${t.rv===m[0]?' selected':''}>${esc(m[1])}</option>`).join('')}</select></label></div>${SMP?`<button class="bo" data-a="prd" style="margin-top:8px">${ic('rocket',14)}Draft PR description</button>`:''}${DR[t.id]?`<pre style="white-space:pre-wrap">${esc(DR[t.id])}</pre><button class="bo" data-a="copy" data-txt="${esc(DR[t.id])}">Copy draft</button>`:''}`:''}
+ ${sec('s')?`<h4>Subtasks <span>(${dn}/${n})</span></h4>${SMP?`<button class="bo" data-a="brk" style="margin-bottom:6px">${ic('rocket',14)}Break down with Claude</button>`:''}${t.sub.map((s,i)=>`<label class="sb${s.d?' d':''}"><input type="checkbox" data-a="sub" data-i="${i}"${s.d?' checked':''}><span>${esc(s.t)}</span></label>`).join('')}<input class="nsub" id="nsub" placeholder="Add subtask and press Enter">`:''}
+ ${sec('c')?`<h4>Comments <span>(${t.cm.length})</span><span style="font-size:12px">Newest first</span></h4>${t.cm.map(c=>`<div class="cm">${av(c.a,32)}<div><b>${esc(mn(c.a))}</b> <small>${esc(c.w)}</small><p>${mt(c.t)}</p></div></div>`).join('')}<div class="ci">${av(ME_ID,30)}<input id="cin" placeholder="Add a comment..."><button aria-label="Emoji">${ic('smile',18)}</button><button aria-label="Attach">${ic('clipx',18)}</button><button class="snd" data-a="send" aria-label="Send comment">${ic('send',16)}</button></div>`:''}
+ ${ptab==='a'?((t.log||[]).map(l=>`<div class="cm">${av(l.w,28)}<div><b>${esc(mn(l.w))}</b> ${esc(l.x)}<br><small>${tm2(l.at)}</small></div></div>`).join('')||'<p class="dsc">No changes recorded yet.</p>'):''}`}
+function render(){
+ TD=ymd(new Date());
+ const H={board:['Team board','Track, manage, and ship work together.','Board'],standup:['Daily standup','Share what you did, what is next and what is blocking you.','Daily Standup'],team:['Team','Workload and progress for every member.','Team'],git:['Git & PRs','Branches and pull requests for every task.','Git & PRs'],ctx:['Context & prompts','Shared context to paste into every new Claude chat.','Context & Prompts'],set:['Settings','','Settings']}[view];
+ $('#ht').textContent=H[0];$('#hs').textContent=H[1];$('#bcn').textContent=H[2];
+ ['#stats','.tb','#chips'].forEach(s=>$(s).style.display=view==='board'?'':'none');
+ $('#stats').innerHTML=stats();$('#chips').innerHTML=chips();$('#main').innerHTML=main();panel();
+ who();$('#stk').innerHTML=stk();$('#bell').classList.toggle('dot',MEN().some(x=>(x.c.at||0)>SEEN));if(RM){const k=ME_ID+'|'+(sel||'');if(k!==LPR){LPR=k;RM.presence({u:ME_ID,t:sel||null}).catch(()=>{})}}$('#myc').textContent=S.tasks.filter(t=>t.as===ME_ID&&t.st!=='done').length;
+ document.querySelectorAll('.nv[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===(view==='board'&&F.as===ME_ID&&F.myv?'my':view)));
+}
+const toast=(m,fn)=>{const e=$('#toast');e.textContent=m;if(fn){const b=document.createElement('button');b.textContent='Undo';b.style.cssText='margin-left:10px;padding:2px 10px';b.onclick=()=>{fn();e.style.display='none'};e.append(b)}e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',fn?7000:3400)};
+async function copy(x,m){try{await navigator.clipboard.writeText(x);toast(m||'Copied')}catch(e){toast('Copy is blocked here. Select the text and copy it manually.')}}
+const lk=u=>/^https?:\/\//.test(u||'')?`<a href="${esc(u)}" target="_blank" rel="noopener">Open PR</a>`:'';
+const GIT='git checkout -b feature/<task-name>\ngit add .\ngit commit -m "feat: <what changed>"\ngit push -u origin feature/<task-name>\n# Open a pull request on GitHub, ask a teammate to review, then merge';
+const TPL='# Project: <name>\n## What we are building:\n## Tech stack:\n## Folder structure:\n## Coding rules:\n## Current status:\n## Important decisions:';
+function vStandup(){const SS=S.stand.filter(x=>!QS||(mn(x.m)+' '+x.y+' '+x.t+' '+x.b).toLowerCase().includes(QS)),ok=new Set(S.stand.filter(s=>s.d===TD).map(s=>s.m)),ms=M.filter(m=>!ok.has(m[0])),days=[...new Set(SS.map(s=>s.d))].sort().reverse().slice(0,QS?30:7);
+ return `<div class="bx"><b>Today's update</b><small>${fd(TD)}</small><div class="g2" style="margin-top:8px"><label style="grid-column:1/3">Who are you<select id="sm">${M.filter(m=>ME_ID==='m'||m[0]===ME_ID).map(m=>`<option value="${esc(m[0])}"${m[0]===ME_ID?' selected':''}>${esc(m[1])}</option>`).join('')}</select></label><label style="grid-column:1/3">What did you finish yesterday<textarea id="sy" rows="2">${esc(DRAFT.sy)}</textarea></label><label style="grid-column:1/3">What will you do today<textarea id="sx" rows="2">${esc(DRAFT.sx)}</textarea></label><label style="grid-column:1/3">Anything blocking you<textarea id="sb2" rows="1">${esc(DRAFT.sb2)}</textarea></label></div><div style="margin-top:10px"><button class="pr" data-a="post">Post update</button></div>${ms.length?`<div class="chips" style="margin:12px 0 0"><small>Waiting for:</small>${ms.map(m=>`<span class="chip" style="--c:#d97706">${esc(m[1])}</span>`).join('')}</div>`:''}</div>${SMP?`<div class="bx"><b>Weekly summary</b><small>Claude reads the last 7 days of standups and the task board.</small><button class="bo" data-a="sum" style="margin-top:8px">${ic('rocket',14)}Summarize this week with Claude</button>${SUM?`<pre style="white-space:pre-wrap">${esc(SUM)}</pre><button class="bo" data-a="copy" data-txt="${esc(SUM)}">Copy summary</button>`:''}</div>`:''}<input id="qs" class="nsub" style="margin:0 0 12px" placeholder="Search past standups" value="${esc(QS)}">${days.map(d=>`<div class="bx"><b>${fd(d)}</b>${SS.filter(s=>s.d===d).map(s=>`<div class="cm" style="margin-top:10px">${av(s.m,32)}<div><b>${esc(mn(s.m))}</b><p>Yesterday: ${esc(s.y||'-')}</p><p>Today: ${esc(s.t)}</p>${s.b?`<p style="color:#ef4444">Blocked: ${esc(s.b)}</p>`:''}</div></div>`).join('')}</div>`).join('')||'<div class="emp">No updates yet. Post the first one above.</div>'}`}
+function vTeam(){const wk=Date.now()-6048e5;return `<div class="gr">${M.map(m=>{const T=S.tasks.filter(t=>t.as===m[0]),c=k=>T.filter(t=>t.st===k).length,ls=S.stand.filter(s=>s.m===m[0]).map(s=>s.d).sort().pop(),u=S.usage.find(x=>x.m===m[0]&&x.d===TD)||{};return `<div class="bx"><div style="display:flex;gap:10px;align-items:center">${av(m[0],40)}<div><b>${esc(m[1])}</b><small>${T.length} tasks assigned</small></div></div><div class="wb" style="margin:12px 0">${ST.map(s=>`<i style="flex:${c(s[0])};background:${s[2]}"></i>`).join('')}</div><div class="tg">${ST.map(s=>`<span class="tag" style="--c:${s[2]}">${s[1]} ${c(s[0])}</span>`).join('')}</div><small>Finished this week: ${T.filter(t=>t.st==='done'&&t.u>wk).length}</small><small>Last standup: ${ls?fd(ls):'none yet'}</small><small${u.hit?' style="color:#ef4444"':''}>Claude today: ${+u.n||0} chats${u.hit?', limit reached':''}</small>${m[0]===ME_ID?`<div style="display:flex;gap:6px;margin-top:8px"><button class="bo" data-a="uadd">+1 chat</button><button class="bo" data-a="uhit">${u.hit?'Limit cleared':'Limit reached'}</button></div>`:''}</div>`}).join('')}</div>`}
+function vGit(){const T=S.tasks.filter(t=>t.branch),w=[...S.tasks.filter(t=>t.st==='doing'&&!t.branch).map(t=>`"${t.t}" is in progress but has no branch`),...S.tasks.filter(t=>t.ps==='open'&&!t.rv).map(t=>`"${t.t}" has an open PR but no reviewer`),...S.tasks.filter(t=>t.st==='done'&&t.branch&&t.ps!=='merged').map(t=>`"${t.t}" is done but its PR is not merged`)];
+ return `${syncBox()}${w.length?`<div class="bx"><b>Needs attention</b>${w.map(x=>`<div class="wr">${ic('alert',14)} ${esc(x)}</div>`).join('')}</div>`:''}<div class="lst" style="margin-bottom:12px"><table><tr><th>Branch</th><th>Task</th><th>Owner</th><th>Status</th><th>PR</th><th>Reviewer</th></tr>${T.map(t=>`<tr data-id="${t.id}"><td><code>${esc(t.branch)}</code></td><td>${esc(t.t)}</td><td>${esc(mn(t.as))}</td><td>${ST.find(s=>s[0]===t.st)[1]}</td><td>${lk(t.prUrl)} ${t.ps==='merged'?'Merged':t.ps==='open'?'Open':'No PR'}</td><td>${t.rv?esc(mn(t.rv)):'None'}</td></tr>`).join('')||'<tr><td colspan="6">No branches yet. Open a task and add its branch name.</td></tr>'}</table></div><div class="bx"><b>Standard git flow</b><pre>${esc(GIT)}</pre><button class="bo" data-a="copy" data-txt="${esc(GIT)}">${ic('file',14)}Copy commands</button></div>`}
+function vCtx(){return `<div class="bx"><b>PROJECT_CONTEXT.md</b><small>Paste this at the start of every new Claude chat so every teammate gets the same background.</small><textarea id="cx" rows="12" placeholder="${esc(TPL)}">${esc(DRAFT.cx!=null?DRAFT.cx:S.ctx)}</textarea><div style="display:flex;gap:8px;margin-top:10px"><button class="pr" data-a="savectx">Save context</button><button class="bo" data-a="copyc">Copy</button></div></div><div class="bx"><b>Prompt library</b><input id="pt2" placeholder="Title, for example: Build an API endpoint" value="${esc(DRAFT.pt2)}"><textarea id="px" rows="3" placeholder="Prompt text">${esc(DRAFT.px)}</textarea><div style="margin-top:10px"><button class="pr" data-a="addp">Add prompt</button></div></div>${S.prompts.map(p=>`<div class="bx"><b>${esc(p.t)}</b><pre>${esc(p.x)}</pre><div style="display:flex;gap:8px"><button class="bo" data-a="copy" data-txt="${esc(p.x)}">Copy</button><button class="bo" data-a="pwt" data-id="${p.id}">Copy with task</button><button class="bo" data-a="rate" data-id="${p.id}" data-v="up" style="${my(p)===1?'border-color:var(--ac);color:var(--ac)':''}">Helpful ${vc(p,1)}</button><button class="bo" data-a="rate" data-id="${p.id}" data-v="dn" style="${my(p)===-1?'border-color:var(--ac);color:var(--ac)':''}">Not helpful ${vc(p,-1)}</button><button class="bo" data-a="delp" data-id="${p.id}">Delete</button></div></div>`).join('')}`}
+let PV=null,PP=null,SY='';
+const lb=k=>(ST.find(s=>s[0]===k)||[0,k])[1];
+function parseGh(txt){const out={},add=(id,o)=>{const e=out[id]||{};if(e.pr==='merged')delete o.pr;out[id]=Object.assign(e,o)};let arr=null;try{const j=JSON.parse(txt);arr=Array.isArray(j)?j:null}catch(e){}
+ const items=arr?arr.map(p=>({s:`${p.title||''} ${p.headRefName||''}`,state:String(p.state||'').toLowerCase(),url:p.url||'',br:p.headRefName||''})):txt.split('\n').filter(l=>l.trim()).map(l=>({s:l,state:/merged|merge pull request/i.test(l)?'merged':/\bopen\b/i.test(l)?'open':'',url:(l.match(/https:\/\/github\.com\/\S+?\/pull\/\d+/)||[''])[0],br:(l.match(/(?:from\s+[\w.-]+\/)?([\w.\/-]*TASK-\d+[\w.\/-]*)/i)||['',''])[1]}));
+ items.forEach(it=>{const m=it.s.match(/TASK-(\d+)/i);if(!m)return;const o={};if(it.state==='merged'||it.state==='open')o.pr=it.state;if(it.url)o.prUrl=it.url;if(it.br)o.branch=it.br;add(+m[1],o)});return out}
+function plan(P){return Object.keys(P).map(id=>{const o=P[id],t=S.tasks.find(x=>x.id===+id);if(!t)return{id,miss:1};const ch={},c=[];
+ if(o.branch&&o.branch!==t.branch){ch.branch=o.branch;c.push('branch '+o.branch)}
+ if(o.prUrl&&o.prUrl!==t.prUrl){ch.prUrl=o.prUrl;c.push('PR link')}
+ if(o.pr&&o.pr!==t.ps){ch.ps=o.pr;c.push('PR '+o.pr)}
+ const ns=o.pr==='merged'?'done':(o.pr==='open'&&(t.st==='todo'||t.st==='doing'))?'review':t.st;
+ if(ns!==t.st){ch.st=ns;c.push(`status ${lb(t.st)} to ${lb(ns)}`)}
+ return{id:+id,t,ch,c}})}
+function syncBox(){const CMD='gh pr list --state all --limit 50 --json number,title,headRefName,state,url';
+ const ok=PV?PV.filter(x=>!x.miss&&x.c.length):[],miss=PV?PV.filter(x=>x.miss):[],same=PV?PV.filter(x=>!x.miss&&!x.c.length):[];
+ return `<div class="bx"><b>Sync from GitHub</b><small>Run this command in your repo and paste the output below. Tasks are matched by the ID in the branch or PR title, for example TASK-1042-login-page. A merged PR moves the task to Done. An open PR moves it to Review.</small><pre>${esc(CMD)}</pre><textarea id="gt" rows="5" placeholder="Paste the command output or git log lines here">${esc(SY)}</textarea><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="bo" data-a="copy" data-txt="${esc(CMD)}">${ic('file',14)}Copy command</button><button class="pr" data-a="prev">Preview changes</button></div>${PV?`<div style="margin-top:12px">${ok.map(x=>`<div class="cm"><span class="tag" style="--c:#22c55e">TASK-${x.id}</span><div><b>${esc(x.t.t)}</b><p>${esc(x.c.join(', '))}</p></div></div>`).join('')}${same.length?`<small>${same.length} matched task(s) already up to date.</small>`:''}${miss.length?`<div class="wr">${ic('alert',14)} Not on this board: ${miss.map(x=>'TASK-'+x.id).join(', ')}</div>`:''}${!PV.length?'<div class="wr">No TASK-#### IDs found in the pasted text.</div>':''}${ok.length?`<div style="margin-top:10px"><button class="pr" data-a="apply">Apply ${ok.length} change${ok.length>1?'s':''}</button></div>`:''}</div>`:''}</div>`}
+const sErr=e=>e&&e.code==='not_granted'?'Claude access was declined for this page.':e&&e.code==='rate_limited'?'Too many requests. Try again in a minute.':'Claude could not answer. Try again.';
+async function brk(t,b){b.disabled=true;b.textContent='Claude is thinking...';
+ try{const r=await SMP.json(`You are helping a small software team. Break this task into 4 to 8 concrete subtasks, each a short imperative phrase under 60 characters, in a sensible order. Reply with only a JSON array of strings.\n\nTask: ${t.t}\nDescription: ${t.d}\nLabels: ${t.tags.join(', ')||'none'}\nExisting subtasks: ${t.sub.map(s=>s.t).join('; ')||'none'}`,{modelTier:'quick'});
+  const a=(Array.isArray(r)?r:[]).map(x=>String(x).trim()).filter(Boolean).slice(0,8);if(!a.length)throw{code:'empty'};
+  upd(t.id,x=>a.forEach(z=>{if(!x.sub.some(y=>y.t.toLowerCase()===z.toLowerCase()))x.sub.push({t:z,d:false})}));toast(a.length+' subtasks added')}
+ catch(e){toast(sErr(e));panel()}}
+async function sum(b){b.disabled=true;b.textContent='Claude is writing...';
+ const since=plus(-7),st=S.stand.filter(x=>x.d>=since).map(x=>`${mn(x.m)} (${x.d}): yesterday ${x.y||'-'}; today ${x.t}; blockers ${x.b||'none'}`).join('\n')||'No standups posted.';
+ const tk=S.tasks.map(t=>`${t.t} | ${lb(t.st)} | ${mn(t.as)} | due ${t.due}${t.bl?' | blocked':''}`).join('\n');
+ try{const r=await SMP(`Write a short weekly team update from this data. Use plain text with three short paragraphs headed Progress, Blockers and Next week. Name people. Do not invent facts.\n\nStandups:\n${st}\n\nTasks:\n${tk}`,{modelTier:'quick'});SUM=((r&&r.text)||'').trim()}catch(e){toast(sErr(e))}
+ render()}
+const hp=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const norm=o=>{o.id=+o.id||o.id;if(o.pr!==undefined&&!hp(PO,o.pr)){o.ps=o.pr||'';o.pr='Medium'}if(!hp(PO,o.pr))o.pr='Medium';
+ if(!ST.some(s=>s[0]===o.st))o.st='todo';
+ o.t=String(o.t==null?'Untitled task':o.t);o.d=String(o.d==null?'':o.d);o.due=typeof o.due==='string'?o.due:'';o.u=+o.u||0;
+ o.tags=(Array.isArray(o.tags)?o.tags:[]).filter(x=>typeof x==='string');
+ o.sub=(Array.isArray(o.sub)?o.sub:[]).filter(isO).map(x=>({...x,t:String(x.t==null?'':x.t),d:!!x.d}));
+ o.cm=(Array.isArray(o.cm)?o.cm:[]).filter(isO).map(x=>({...x,t:String(x.t==null?'':x.t),w:String(x.w==null?'':x.w)}));
+ return o};
+const dsoon=t=>t.st!=='done'&&t.due>=TD&&t.due<=plus(2),tm2=x=>new Date(x).toLocaleString('en',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const mark=ids=>{UNDO=(ids||[]).map(id=>S.tasks.find(t=>t.id===id)).filter(Boolean).map(t=>JSON.parse(JSON.stringify(t)))},
+undo=()=>{if(!UNDO)return;UNDO.forEach(t=>{const i=S.tasks.findIndex(x=>x.id===t.id);if(i>=0)S.tasks[i]=t;else S.tasks.push(t)});S.tasks.sort((a,b)=>a.id-b.id);UNDO=null;save();render()};
+function chk(t,st){if(st==='done'&&CFG.rev){if(!t.rv)return 'Add a reviewer before moving this task to Done.';if(t.branch&&t.ps!=='merged')return 'Mark the PR as merged before moving this task to Done.'}
+ if(st==='doing'&&t.st!=='doing'&&CFG.wip&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip)return mn(t.as)+' already has '+CFG.wip+' tasks in progress.';return ''}
+function vSet(){return `<div class="bx"><b>Workflow rules</b><label class="sb"><input type="checkbox" id="crev"${CFG.rev?' checked':''}><span>Done needs a reviewer, and a merged PR when the task has a branch</span></label><label style="display:block;margin-top:8px;color:var(--mut);font-size:12px">Max tasks in progress per person (0 means no limit)<input id="cwip" type="number" min="0" max="20" value="${CFG.wip}" style="display:block;width:100px;margin-top:4px;padding:8px"></label></div><div class="bx"><b>Backup</b><small>Download a copy of everything on this board.</small><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="bo" data-a="exj">Download JSON</button><button class="bo" data-a="exc">Download tasks as CSV</button></div></div><div class="bx"><b>Account</b><small>${esc((ME&&ME.email)||"")}</small><div style="margin-top:10px"><button class="bo" data-a="lo">Sign out</button></div></div>`}
+async function expo(k){if(!DL)return toast('Downloads are not available in this view.');
+ const q=v=>{let s=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
+ const data=k==='json'?JSON.stringify({exportedAt:new Date().toISOString(),tasks:S.tasks,standups:S.stand,prompts:S.prompts,usage:S.usage,context:S.ctx,settings:CFG},null,2):['id,title,status,assignee,priority,due,branch,pr_status,reviewer,blocked'].concat(S.tasks.map(t=>[t.id,t.t,lb(t.st),t.as?mn(t.as):'',t.pr,t.due,t.branch,t.ps,t.rv?mn(t.rv):'',t.bl?'yes':''].map(q).join(','))).join('\n');
+ try{await DL.save({filename:'team-board-'+TD+'.'+k,data})}catch(e){toast('Download was cancelled or blocked.')}}
+async function prd(t,b){b.disabled=true;b.textContent='Claude is writing...';try{const r=await SMP(`Write a pull request description and one conventional commit message for this task. Use plain text with the headings Summary, Changes, Testing and Commit message. Keep it short and do not invent details beyond what is given.\n\nTask: TASK-${t.id} ${t.t}\nDescription: ${t.d}\nSubtasks: ${t.sub.map(z=>(z.d?'[x] ':'[ ] ')+z.t).join('; ')||'none'}\nBranch: ${t.branch||'not set'}`,{modelTier:'quick'});DR[t.id]=((r&&r.text)||'').trim()}catch(e){toast(sErr(e))}panel()}
+document.addEventListener('input',e=>{const i=e.target.id;if(i==='sy'||i==='sx'||i==='sb2'||i==='pt2'||i==='px'||i==='cx'||i==='gt'){if(i==='cx'&&DRAFT.cx==null)CXB=S.ctx;DRAFT[i]=e.target.value;if(i==='gt')SY=e.target.value}});
+document.addEventListener('input',e=>{if(e.target.id==='qs'){QS=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const i=$('#qs');if(i){i.focus();i.setSelectionRange(p,p)}}});
+const onl=()=>PEERS.filter(p=>p.kind==='viewer').map(p=>({u:(p.presence||{}).u||p.by,t:(p.presence||{}).t,me:p.isMe}));
+const vwr=id=>onl().filter(p=>p.t===id&&!p.me&&p.u).map(p=>av(p.u,18)).join('');
+function stk(){const seen=new Set(),on=[];onl().forEach(p=>{if(p.u&&!seen.has(p.u)){seen.add(p.u);on.push(p)}});
+ if(RM&&on.length)return on.slice(0,6).map(p=>`<span style="position:relative" title="${esc(mn(p.u))}${p.me?' (you)':''}">${av(p.u,32)}<i style="position:absolute;right:0;bottom:0;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid var(--bg)"></i></span>`).join('')+`<span class="more" style="width:auto;padding:0 10px;border-radius:16px">${on.length} online</span>`;
+ return M.slice(0,4).map(m=>av(m[0],32)).join('')+(M.length>4?`<span class="more">+${M.length-4}</span>`:'')}
+const mentions=v=>M.filter(m=>{const f=m[1].split(' ')[0].replace(/\W/g,'');return f&&new RegExp('@'+f+'\\b','i').test(v)}).map(m=>m[0]);
+const mkc=v=>({a:ME_ID,t:v,w:'Just now',at:Date.now(),men:mentions(v)});
+const mt=t=>esc(t).replace(/@(\w+)/g,(x,n)=>{const m=M.find(z=>z[1].split(' ')[0].toLowerCase()===n.toLowerCase());return m?`<span class="mt">@${esc(m[1].split(' ')[0])}</span>`:x});
+const MEN=()=>{const o=[];S.tasks.forEach(t=>(t.cm||[]).forEach(c=>{if((c.men||[]).includes(ME_ID)&&c.a!==ME_ID)o.push({t,c})}));return o.sort((a,b)=>(b.c.at||0)-(a.c.at||0))};
+function showMen(){const d=$('#mdd');if(!d.hidden){d.hidden=true;return}const L=MEN().slice(0,15);
+ d.innerHTML=L.length?L.map(x=>`<div class="mi" data-a="gt" data-id="${x.t.id}"><b>${esc(mn(x.c.a))}</b> mentioned you in <b>${esc(x.t.t)}</b><br><small style="color:var(--mut)">${esc(x.c.t.slice(0,90))}</small></div>`).join(''):'<p class="mut" style="margin:8px">No mentions yet. Type @FirstName in a comment.</p>';
+ d.hidden=false;SEEN=Date.now();try{localStorage.setItem('tt-seen',String(SEEN))}catch(e){}$('#bell').classList.remove('dot')}
+const vc=(p,v)=>Object.values(p.votes||{}).filter(x=>x===v).length,my=p=>(p.votes||{})[ME_ID];
+let GI=-1,GOPT=false;
+const GS=[
+{t:'Welcome',b:'This short tour walks through the demo project (a tiny todo app). It takes about 2 minutes. You can reopen it any time from the ? button.',v:'board'},
+{t:'Your team',s:'#stk',b:'Every teammate opens the same link and signs in with their email. People who are online show here with a green dot.',v:'board'},
+{t:'Create the demo tasks',s:'[data-a="new"]',b:'Click New task and add three: <b>Remove an item</b>, <b>Mark item done</b>, <b>Filter items</b>. Give each a different owner and set a reviewer.',v:'board'},
+{t:'Move work across the board',s:'.board',b:'Drag cards between columns, or use the arrows on a phone. A task can only reach Done with a reviewer, and with a merged PR if it has a branch. Change these rules in Settings.',v:'board'},
+{t:'Fill in the Git details',s:'#panel',o:1,b:'Open a task. In the Git section type the branch (for example <code>feature/TASK-1101-remove-item</code>), the PR link, the PR status and the reviewer. Tick Blocked if you are stuck.',v:'board'},
+{t:'Sync from GitHub',s:'.nv[data-v="git"]',b:'After a PR merges, run <code>./scripts/board-sync.sh</code> in the repo, paste the output into Sync from GitHub, press Preview changes, then Apply. Undo stays available for 7 seconds.',v:'git'},
+{t:'Daily standup',s:'.nv[data-v="standup"]',b:'Post what you finished, what you will do and any blockers. Updates are saved under your own name.',v:'standup'},
+{t:'Team and Claude usage',s:'.nv[data-v="team"]',b:'See each person\'s workload. Press +1 chat each time you use Claude, and Limit reached when your free limit ends, so the team can move work to someone else.',v:'team'},
+{t:'Context and prompts',s:'.nv[data-v="ctx"]',b:'Keep PROJECT_CONTEXT.md here and paste it at the start of every new Claude chat. Save good prompts and vote on them.',v:'ctx'},
+{t:'Settings and backup',s:'.nv[data-v="set"]',b:'Turn the Done rule on or off, set the in-progress limit, and download a JSON or CSV backup.',v:'set'},
+{t:'Need help later?',s:'#hlp',b:'Click the ? button (or How-to guide in the sidebar) to see every step and the fixes for common problems.',v:'board'}];
+const GUIDE=`<h4>A. Set up once</h4><ol><li>Create an empty GitHub repo called <code>mini-todo-demo</code> and push the demo project to <code>main</code>.</li><li>Run <code>npm test</code>. It must print "All tests passed".</li><li>In the repo, protect <code>main</code> and require the checks <b>CI / test</b> and <b>Task ID check / check</b>.</li><li>Turn on the GitHub Projects rules: item closed and pull request merged both set Status to Done.</li><li>Install the GitHub CLI and run <code>gh auth login</code>.</li></ol>
+<h4>B. Run one task end to end</h4><ol><li>Create the task on this board and note its number, for example 1101.</li><li>Create a branch named <code>feature/TASK-1101-remove-item</code>, make the change, run <code>npm test</code>, push and open a PR with <code>gh pr create --fill</code>.</li><li>On the board, open the task and fill in branch, PR link, PR status Open and reviewer. Move it to In review.</li><li>A teammate reviews and merges the PR. A bot comment says the task is ready for Done.</li><li>Run <code>./scripts/board-sync.sh</code>, paste into Sync from GitHub, Preview changes, Apply.</li><li>The task should now be Done with PR merged.</li></ol>
+<h4>C. What you should see</h4><ul><li>A PR without a task ID fails the <b>Task ID check</b>.</li><li>Dragging a task with an open PR to Done is blocked.</li><li>Dragging a task with no reviewer to Done is blocked.</li><li>Undo after Apply puts everything back.</li><li>Two browsers show each other as online, and an @Name comment lights the other person's bell.</li></ul>
+<h4>D. Something wrong?</h4><table><tr><td><b>My name is missing or nothing saves</b></td><td>Your email must be on the allowed list. Ask the owner to add it, then sign out and sign in again.</td></tr><tr><td><b>Task will not move to Done</b></td><td>Add a reviewer and set PR status to Merged, or change the rule in Settings.</td></tr><tr><td><b>Sync says a task is not on the board</b></td><td>The branch or PR title must contain the board number, like TASK-1101.</td></tr><tr><td><b>Someone already has 3 tasks in progress</b></td><td>Finish one first, or raise the limit in Settings.</td></tr><tr><td><b>The tour keeps appearing / never appears</b></td><td>It is remembered in this browser only. Use the ? button to open it any time.</td></tr></table>`;
+function gdSeen(){try{return localStorage.getItem('tt-guide-v1')}catch(e){return null}}
+function gdHl(go){document.querySelectorAll('.hl').forEach(x=>x.classList.remove('hl'));if(GI<0)return;const st=GS[GI];if(!st.s)return;const el=document.querySelector(st.s);if(el){el.classList.add('hl');if(go)el.scrollIntoView({block:'center',behavior:'smooth'})}}
+function gdClose(){const tour=GI>=0,o=tour&&GOPT;GI=-1;GOPT=false;const g=$('#gd');g.hidden=true;g.innerHTML='';g.className='';try{localStorage.setItem('tt-guide-v1','1')}catch(e){}if(o)sel=null;if(tour)view='board';render()}
+function gdGo(i){GI=i;const st=GS[i];view=st.v||'board';if(st.o&&!cur()&&S.tasks.length){sel=S.tasks[0].id;GOPT=true}
+ const g=$('#gd');g.hidden=false;g.className='gt';g.innerHTML=`<div class="gc" role="dialog" aria-label="How-to tour"><small>Step ${i+1} of ${GS.length}</small><h3>${st.t}</h3><p>${st.b}</p><div class="gb"><button class="bo" data-a="gskip">Skip tour</button><span style="flex:1"></span>${i?'<button class="bo" data-a="gprev">Back</button>':''}<button class="pr" data-a="gnext">${i===GS.length-1?'Finish':'Next'}</button></div></div>`;render();gdHl(true)}
+function gdList(){GI=-1;document.querySelectorAll('.hl').forEach(x=>x.classList.remove('hl'));const g=$('#gd');g.hidden=false;g.className='gl';g.innerHTML=`<div class="gm" role="dialog" aria-label="How-to guide"><div class="gh"><b style="font-size:17px">How-to guide</b><span><button class="bo" data-a="gtour">Start the tour</button><button class="ib" data-a="gclose" aria-label="Close guide">${ic('x',18)}</button></span></div><small style="color:var(--mut)">Based on the mini todo demo project. Use it any time you get stuck.</small>${GUIDE}</div>`}
+const _r0=render;render=function(f){_r0(f);gdHl()};
+function opts(){const o=(id,h,a)=>$(id).innerHTML=`<option value="">${h}</option>`+a.map(x=>`<option value="${esc(x[0])}">${esc(x[1])}</option>`).join('');
+ o('#fa','Assignee',M.map(m=>[m[0],m[1]]));o('#fs','Status',ST.map(s=>[s[0],s[1]]));o('#fp','Priority',Object.keys(PR).map(p=>[p,p]));o('#fb','Labels',Object.keys(TC).map(l=>[l,l]));[['#fa','as'],['#fs','st'],['#fp','pr'],['#fb','lb']].forEach(([q,k])=>{$(q).value=F[k]})}
+function addTask(st){const m0=st==='doing'?chk({id:-1,as:ME_ID,st:'todo'},'doing'):'';if(m0){toast(m0);st='todo'}const id=nextId();S.tasks.push({id,t:'Untitled task',d:'Add a short description.',tags:[],pr:'Medium',due:plus(3),as:ME_ID,st,bl:false,u:Date.now(),sub:[],cm:[],cr:ME_ID+':'+uid(),...(st==='doing'?{dat:Date.now(),dby:ME_ID}:{})});FRESH.add(id);sel=id;ptab='d';view='board';save();render();const i=$('#pt');if(i){i.focus();i.select()}}
+function sync(k,v){F[k]=v;const m={as:'#fa',st:'#fs',pr:'#fp',due:'#fd',lb:'#fb'};if(m[k])$(m[k]).value=v;render()}
+document.addEventListener('click',e=>{
+ if(!e.target.closest('#mdd,#bell'))$('#mdd').hidden=true;
+ if(e.target.id==='gd'&&e.target.classList.contains('gl')){gdClose();return}
+ const nv=e.target.closest('.nv[data-v]');if(nv){view=nv.dataset.v==='my'?'board':nv.dataset.v;F.myv=nv.dataset.v==='my';sync('as',F.myv?ME_ID:'');return}
+ const vb=e.target.closest('[data-vw]');if(vb){vw=vb.dataset.vw;document.querySelectorAll('[data-vw]').forEach(b=>b.classList.toggle('on',b===vb));render();return}
+ const b=e.target.closest('[data-a]');
+ if(b){const a=b.dataset.a,t=cur();
+  if(a==='new')addTask('todo');else if(a==='addc')addTask(b.dataset.s);
+  else if(a==='rm'){F.myv=false;sync(b.dataset.k,'')}else if(a==='clr'){F.myv=false;Object.assign(F,{q:'',as:'',st:'',pr:'',due:'',lb:''});$('#ts').value=$('#gs').value='';['#fa','#fs','#fp','#fd','#fb'].forEach(i=>$(i).value='');render()}
+  else if(a==='close'){sel=null;render()}
+  else if(a==='del'&&t){mark([t.id]);FRESH.delete(t.id);S.tasks=S.tasks.filter(x=>x.id!==t.id);sel=null;save();render();toast('Task deleted',undo)}
+  else if(a==='tab'){ptab=b.dataset.t;panel()}
+  else if(a==='edd'&&t){if(edD){const f=$('#pds'),v=f?f.value.trim():'';edD=false;upd(t.id,x=>x.d=v||x.d)}else{edD=true;panel();const f=$('#pds');f&&f.focus()}}
+  else if(a==='send'&&t){const i=$('#cin'),v=i?i.value.trim():'';if(v){upd(t.id,x=>x.cm.unshift(mkc(v)));setTimeout(()=>{const n=$('#cin');n&&n.focus()})}}
+  else if(a==='inv')copy(location.href,'Link copied. Send it to teammates. Their email must be on the allowed list first (see setup.sql).');
+  else if(a==='autobr'&&t)upd(t.id,x=>x.branch='feature/'+x.t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''));
+  else if(a==='copy')copy(b.dataset.txt);else if(a==='copyc')copy($('#cx').value);
+  else if(a==='savectx'){S.ctx=$('#cx').value;delete DRAFT.cx;save();toast('Context saved')}
+  else if(a==='post'){const g=i=>$(i).value.trim(),tt=g('#sx');if(!tt)return toast('Write what you will do today');S.stand.push({id:uid(),m:ME_ID!=='m'?ME_ID:$('#sm').value,y:g('#sy'),t:tt,b:g('#sb2'),d:TD});delete DRAFT.sy;delete DRAFT.sx;delete DRAFT.sb2;save();render();toast('Update posted')}
+  else if(a==='addp'){const x=$('#pt2').value.trim(),y=$('#px').value.trim();if(!x||!y)return toast('Add a title and the prompt text');S.prompts.push({id:uid(),t:x,x:y});delete DRAFT.pt2;delete DRAFT.px;save();render()}
+  else if(a==='delp'){S.prompts=S.prompts.filter(p=>p.id!==+b.dataset.id);save();render()}
+  else if(a==='gosync'){view='git';F.myv=false;sync('as','')}
+  else if(a==='brk'&&t)brk(t,b);else if(a==='sum')sum(b);else if(a==='prd'&&t)prd(t,b);
+  else if(a==='mv'){const k=S.tasks.find(x=>x.id===+b.dataset.id);if(!k)return;const i=ST.findIndex(z=>z[0]===k.st)+Number(b.dataset.d);if(i<0||i>=ST.length)return;const m=chk(k,ST[i][0]);if(m)toast(m);else upd(k.id,x=>x.st=ST[i][0])}
+  else if(a==='exj')expo('json');else if(a==='exc')expo('csv');else if(a==='lo')signOut();
+  else if(a==='gt'){sel=+b.dataset.id;ptab='c';$('#mdd').hidden=true;render()}
+  else if(a==='guide')gdList();else if(a==='gtour')gdGo(0);else if(a==='gclose'||a==='gskip')gdClose();
+  else if(a==='gnext'){GI>=GS.length-1?gdClose():gdGo(GI+1)}else if(a==='gprev')gdGo(Math.max(0,GI-1));
+  else if(a==='uadd'||a==='uhit'){const k=TD+'-'+ME_ID;let u=S.usage.find(x=>x.id===k);if(!u){u={id:k,m:ME_ID,d:TD,n:0,hit:false};S.usage.push(u)}if(a==='uadd')u.n++;else u.hit=!u.hit;save();render()}
+  else if(a==='rate'){const p=S.prompts.find(x=>x.id===+b.dataset.id);if(p){const v=b.dataset.v==='up'?1:-1;p.votes=Object.assign({},p.votes);if(p.votes[ME_ID]===v)delete p.votes[ME_ID];else p.votes[ME_ID]=v;save();render()}}
+  else if(a==='pwt'){const p=S.prompts.find(x=>x.id===+b.dataset.id),k=cur();if(!p)return;if(!k)return toast('Open a task first, then copy the prompt with its context.');copy(p.x+`\n\nTask context:\nTASK-${k.id} ${k.t}\n${k.d}\nSubtasks: ${k.sub.map(z=>z.t).join('; ')||'none'}`,'Prompt copied with task context')}
+  else if(a==='prev'){SY=$('#gt').value;PP=parseGh(SY);PV=plan(PP);render()}
+  else if(a==='apply'&&PP){const P=plan(PP).filter(x=>!x.miss&&x.c.length);PV=null;PP=null;SY='';delete DRAFT.gt;
+   if(!P.length){render();return toast('Nothing to update. The board already matches.')}
+   mark(P.map(x=>x.id));P.forEach(x=>upd(x.id,tk=>Object.assign(tk,x.ch)));render();toast(P.length+' task(s) updated from GitHub',undo)}
+  return}
+ if(e.target.closest('#col')){document.body.classList.toggle('mini');$('#app').classList.toggle('mini');return}
+ if(e.target.closest('#bell')){showMen();return}
+ if(e.target.closest('#th')){const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;setTheme(dark?'light':'dark');return}
+ const c=e.target.closest('.card[data-id],tr[data-id]');if(c){sel=+c.dataset.id;ptab='d';edD=false;render()}
+});
+document.addEventListener('change',e=>{const i=e.target.id,t=cur(),v=e.target.value;
+ if(i==='nsel'&&v){addTask(v);e.target.value=''}
+ else if({fa:'as',fs:'st',fp:'pr',fd:'due',fb:'lb'}[i]){F.myv=false;sync({fa:'as',fs:'st',fp:'pr',fd:'due',fb:'lb'}[i],v)}
+ else if(i==='so'){F.so=v;render()}
+ else if(i==='crev'){CFG.rev=e.target.checked;save();toast('Rule saved')}else if(i==='cwip'){CFG.wip=Math.max(0,Math.min(20,+v||0));save();toast('Rule saved')}
+ else if(!t)return;
+ else if(i==='pt')upd(t.id,x=>x.t=v.trim()||x.t);else if(i==='ps'){const m=chk(t,v);if(m){toast(m);panel()}else upd(t.id,x=>x.st=v)}else if(i==='pp')upd(t.id,x=>x.pr=v);else if(i==='pa'){const m=t.st==='doing'?wipMsg({id:t.id,as:v}):'';if(m){toast(m);panel()}else upd(t.id,x=>x.as=v)}else if(i==='pd')upd(t.id,x=>x.due=v);
+ else if(i==='plb'&&v)upd(t.id,x=>x.tags.push(v));else if(i==='gb')upd(t.id,x=>x.branch=v.trim());else if(i==='gl')upd(t.id,x=>x.prUrl=v.trim());else if(i==='gp')upd(t.id,x=>x.ps=v);else if(i==='pbl')upd(t.id,x=>x.bl=e.target.checked);else if(i==='pbr')upd(t.id,x=>x.blr=v.trim());else if(i==='gr')upd(t.id,x=>x.rv=v);
+ else if(e.target.dataset.a==='sub'){const si=+e.target.dataset.i,ck=e.target.checked;upd(t.id,x=>{if(x.sub[si])x.sub[si].d=ck})}
+ else if(i==='pds'){const d=v.trim();edD=false;upd(t.id,x=>x.d=d||x.d)}
+});
+document.addEventListener('input',e=>{if(e.target.id==='ts'||e.target.id==='gs'){F.q=e.target.value.toLowerCase();$('#ts').value=$('#gs').value=e.target.value;render()}});
+document.addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#gs').focus()}
+ else if(e.key==='Escape'&&!$('#gd').hidden){gdClose()}
+ else if(e.key==='Escape'&&sel&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){sel=null;render()}
+ else if(e.key==='Enter'&&!e.isComposing&&e.target.id==='nsub'&&e.target.value.trim()){const v=e.target.value.trim();upd(sel,x=>x.sub.push({t:v,d:false}));setTimeout(()=>{const i=$('#nsub');i&&i.focus()})}
+ else if(e.key==='Enter'&&!e.isComposing&&e.target.id==='cin'&&e.target.value.trim()){const v=e.target.value.trim();upd(sel,x=>x.cm.unshift(mkc(v)));setTimeout(()=>{const n=$('#cin');n&&n.focus()})}
+ else if(e.key==='Enter'&&e.target.classList.contains('card')){sel=+e.target.dataset.id;render()}
+});
+document.addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.card');if(c){dragId=+c.dataset.id;c.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(dragId))}});
+document.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.drag,.ov').forEach(x=>x.classList.remove('drag','ov'))});
+document.addEventListener('dragover',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();document.querySelectorAll('.ov').forEach(x=>x!==c&&x.classList.remove('ov'));c.classList.add('ov')}});
+document.addEventListener('drop',e=>{const c=e.target.closest('.col');if(c&&dragId){e.preventDefault();const id=dragId,s=c.dataset.s,k=S.tasks.find(x=>x.id===id),m=k&&k.st!==s?chk(k,s):'';if(m)toast(m);else if(k&&k.st!==s)upd(id,t=>t.st=s)}});
+function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('tt-theme',t)}catch(e){}icon()}
+function icon(){const d=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;$('#th').innerHTML=ic(d?'sun':'moon',18);$('#th').title=d?'Switch to light theme':'Switch to dark theme'}
+try{const t=localStorage.getItem('tt-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+icon();matchMedia('(prefers-color-scheme:dark)').addEventListener('change',icon);
+opts();render();
+/* ================= Supabase backend ================= */
+const SB_URL='https://manavdb.duckdns.org',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkyMDIzMzkxLCJleHAiOjE5NDk3MDMzOTF9.ES_ordI1hLnb5Xuj_0AUqr2x0MK7Be2rXA-hc9YMKxI';
+let sb=null;
+const PAL=['#6366f1','#0ea5e9','#ec4899','#f59e0b','#10b981','#8b5cf6','#ef4444','#14b8a6'];
+const colorFor=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return PAL[h%PAL.length]};
+const sj=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+/* Firestore-like adapter over one table: docs(path, col, id, data, updated_at) */
+function makeDb(sb){
+ const cache=new Map(),subs=[],recent={};let loaded=false,since=null;
+ const sd=(id,j)=>({id,data:()=>JSON.parse(j)});
+ const isRecent=p=>recent[p]&&Date.now()-recent[p]<4000;
+ const put=(r,force)=>{if(!force&&isRecent(r.path))return;cache.set(r.path,{col:r.col,id:r.id,j:sj(r.data)});if(r.updated_at&&r.updated_at>(since||''))since=r.updated_at};
+ function notify(){if(!loaded)return;
+  subs.forEach(s=>{
+   if(s.kind==='doc'){const e=cache.get(s.path),j=e?e.j:null;
+    if(s.first||j!==s.last){s.first=false;s.last=j;try{s.cb({exists:!!e,id:s.path.split('/').pop(),data:()=>e?JSON.parse(e.j):undefined})}catch(x){console.error(x)}}
+   }else{
+    const now=new Map();cache.forEach(e=>{if(e.col===s.col)now.set(e.id,e.j)});const ch=[];
+    now.forEach((j,id)=>{const p=s.last.get(id);if(p===undefined)ch.push({type:'added',doc:sd(id,j)});else if(p!==j)ch.push({type:'modified',doc:sd(id,j)})});
+    s.last.forEach((j,id)=>{if(!now.has(id))ch.push({type:'removed',doc:sd(id,j)})});
+    if(s.first||ch.length){s.first=false;s.last=now;const docs=[...now].map(([id,j])=>sd(id,j));
+     try{s.cb({docs,empty:!docs.length,metadata:{fromCache:false},docChanges:()=>ch})}catch(x){console.error(x)}}
+   }})}
+ const fail=e=>subs.forEach(s=>s.err&&s.err(e));
+ async function full(){let from=0,rows=[];
+  for(;;){const {data,error}=await sb.from('docs').select('path,col,id,data,updated_at').order('path').range(from,from+999);if(error)throw error;rows=rows.concat(data);if(data.length<1000)break;from+=1000}
+  const seen=new Set();rows.forEach(r=>{seen.add(r.path);put(r)});
+  [...cache.keys()].forEach(p=>{if(!seen.has(p)&&!isRecent(p))cache.delete(p)});
+  loaded=true;notify()}
+ async function inc(){if(!since)return full();
+  const t=new Date(new Date(since).getTime()-2000).toISOString();
+  const {data,error}=await sb.from('docs').select('path,col,id,data,updated_at').gt('updated_at',t).limit(1000);if(error)throw error;
+  if(data.length>=1000)return full();data.forEach(r=>put(r));notify()}
+ const onEv=p=>{if(p.eventType==='DELETE'){const o=p.old||{};if(o.path){cache.delete(o.path);notify()}}else if(p.new&&p.new.path){put(p.new,true);notify()}};
+ const api={
+  start(){let n=0;full().catch(fail);
+   sb.channel('docs-sync').on('postgres_changes',{event:'*',schema:'public',table:'docs'},onEv).subscribe(s=>{if(s==='SUBSCRIBED'){n++;(n>1?full():inc()).catch(()=>{})}});
+   setInterval(()=>{if(!document.hidden)inc().catch(()=>{})},45000);
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden)inc().catch(()=>{})})},
+  collection(col){return{onSnapshot(cb,err){subs.push({kind:'col',col,cb,err,first:true,last:new Map()});notify()}}},
+  doc(path){const col=path.slice(0,path.indexOf('/')),id=path.slice(path.indexOf('/')+1);return{
+   async get(){const {data,error}=await sb.from('docs').select('data').eq('path',path).maybeSingle();if(error)throw error;
+    return{exists:!!data,data:()=>data?data.data:undefined}},
+   async set(d){const {error}=await sb.from('docs').upsert({path,col,id,data:d},{onConflict:'path'});if(error)throw error;
+    recent[path]=Date.now();cache.set(path,{col,id,j:sj(d)});notify()},
+   async delete(){const {error}=await sb.from('docs').delete().eq('path',path);if(error)throw error;
+    recent[path]=Date.now();cache.delete(path);notify()},
+   onSnapshot(cb,err){subs.push({kind:'doc',path,cb,err,first:true,last:null});notify()}}}
+ };
+ return api}
+/* presence (who is online / which task they are viewing) */
+function makeRoom(sb,me){
+ const ch=sb.channel('tt-room',{config:{presence:{key:me}}});let cb=null,last=null,ready=false;
+ const emit=()=>{if(!cb)return;const st=ch.presenceState(),peers=[];
+  Object.keys(st).forEach(k=>{const m=st[k],p=m[m.length-1]||{};peers.push({kind:'viewer',by:k,isMe:k===me,presence:{u:p.u,t:p.t}})});cb({peers})};
+ ch.on('presence',{event:'sync'},emit);
+ ch.subscribe(s=>{if(s==='SUBSCRIBED'){ready=true;if(last)ch.track(last)}});
+ return{onPeers(f){cb=f;emit()},presence(o){last=o;return ready?ch.track(o):Promise.resolve()}}}
+/* login screen */
+function authShow(mode,em){const a=$('#auth');a.hidden=false;
+ const logo='<div class="lg" style="justify-content:center;padding-bottom:14px"><i data-i="rocket" data-s="18"></i><span>Team Tracker</span></div>';
+ if(mode==='config'){a.innerHTML=`<div class="ac">${logo}<b>Setup needed</b><p>Open index.html and put your Supabase project URL and anon key in <code>SB_URL</code> and <code>SB_KEY</code> at the top of the script, then reload.</p></div>`}
+ else if(mode==='denied'){a.innerHTML=`<div class="ac">${logo}<b>Not on the team list</b><p>${esc(em)} has not been added yet. Ask the board owner to add this email, then sign in again.</p><button class="pr" id="ao">Sign out</button></div>`;$('#ao').onclick=signOut}
+ else{const up=mode==='up';
+  a.innerHTML=`<div class="ac">${logo}<b>${up?'Create your account':'Sign in'}</b><p>${up?'Use the email the owner added for you.':'Welcome back.'}</p>${up?'<label>Your name<input id="an" autocomplete="name"></label>':''}<label>Email<input id="ae" type="email" autocomplete="email"></label><label>Password (6+ characters)<input id="ap" type="password" autocomplete="${up?'new-password':'current-password'}"></label><div id="am" role="alert"></div><button class="pr" id="ag">${up?'Create account':'Sign in'}</button><button class="sw" id="asw">${up?'I already have an account':'New here? Create an account'}</button></div>`;
+  const g=i=>(a.querySelector(i)||{}).value||'',btn=$('#ag'),m=$('#am');
+  const go=async()=>{const email=g('#ae').trim(),pw=g('#ap'),nm=g('#an').trim();m.textContent='';
+   if(!email||pw.length<6){m.textContent='Enter your email and a password of at least 6 characters.';return}
+   if(up&&!nm){m.textContent='Enter your name.';return}
+   btn.disabled=true;
+   try{if(up){const r=await sb.auth.signUp({email,password:pw,options:{data:{name:nm}}});if(r.error)throw r.error;
+     if(!r.data.session){m.textContent='Account created. Check your email to confirm it, then sign in.';btn.disabled=false;return}}
+    else{const r=await sb.auth.signInWithPassword({email,password:pw});if(r.error)throw r.error}
+    location.reload()}
+   catch(e){m.textContent=e.message||'Something went wrong.';btn.disabled=false}};
+  btn.onclick=go;$('#ap').addEventListener('keydown',e=>{if(e.key==='Enter')go()});$('#asw').onclick=()=>authShow(up?'in':'up')}
+ a.querySelectorAll('[data-i]').forEach(e=>e.innerHTML=ic(e.dataset.i,+e.dataset.s||16))}
+async function signOut(){try{await sb.auth.signOut()}catch(e){}location.reload()}
+(async()=>{
+ if(!(SB_URL.startsWith('https://')&&SB_KEY.length>20&&window.supabase)){authShow('config');return}
+ sb=supabase.createClient(SB_URL,SB_KEY);
+ let ses=null;try{ses=(await sb.auth.getSession()).data.session}catch(e){}
+ if(!ses){authShow('in');return}
+ const u=ses.user;
+ const ok=await sb.from('allowed_emails').select('email');
+ if(ok.error||!ok.data||!ok.data.length){authShow('denied',u.email||'');return}
+ $('#auth').hidden=true;
+ const nm=(u.user_metadata&&u.user_metadata.name)||String(u.email||'Teammate').split('@')[0];
+ ME={id:u.id,name:nm,color:colorFor(u.id),canEdit:true,isOwner:false,email:u.email};ME_ID=u.id;
+ db=makeDb(sb);SMP=null;
+ DL={save:async({filename,data})=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([data],{type:'text/plain'}));a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}};
+ await db.doc('people/'+ME.id).set({n:ME.name,c:ME.color}).catch(()=>{});
+ try{SEEN=+(localStorage.getItem('tt-seen')||0)}catch(e){}
+ try{RM=makeRoom(sb,ME.id);RM.onPeers(c=>{PEERS=c.peers;rs()},()=>{})}catch(e){RM=null}
+ rebuildM();let seeded=false;
+ db.collection('people').onSnapshot(q=>{PEOPLE={};q.docs.forEach(d=>PEOPLE[d.id]=d.data());PPL=true;PRES();rebuildM();demoFix();rs()},lerr);
+ db.collection('tasks').onSnapshot(q=>{merge('tasks',q);TSK=TSK||!(q.metadata&&q.metadata.fromCache);enforceWip();demoFix();if(q.empty&&!seeded&&!q.metadata.fromCache){seeded=true;seed()}rs()},lerr);
+ db.doc('meta/settings').onSnapshot(q=>{if(q.exists){const d=JSON.parse(cj(q.data()));if(cj(CFG)===R.cfg)CFG=Object.assign({wip:3,rev:true},d);R.cfg=cj(d);rs()}},lerr);
+ ['standups','prompts','usage'].forEach(c=>db.collection(c).onSnapshot(q=>{merge(c,q);rs()},lerr));
+ db.doc('meta/context').onSnapshot(q=>{if(q.exists){ctxIn(String((q.data()||{}).text||''));rs()}},lerr);
+ db.start();rs();
+ setTimeout(()=>{if(!gdSeen())gdGo(0)},1200);
+})();
+
+addEventListener('pagehide',()=>{clearTimeout(tm);flush()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(tm);flush()}});
+</script></body></html>
