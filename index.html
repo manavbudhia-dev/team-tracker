@@ -1118,7 +1118,7 @@ async function pingFiles(id,to,ev,extra,pre){const t=S.tasks.find(x=>x.id===id);
   (got?ok:bell).push(nm)}
  if(pre!==undefined||ev==='done')toast((pre||'')+(ok.length?'Alert sent to '+ok.join(', ')+'. ':'')+(bell.length?bell.join(', ')+' will see it under the bell'+(ok.length?'':' (no Telegram or Slack set up)')+'. ':'')+(bad.length?'Problem: '+bad.join('; '):''))}
 let CSB=false;
-async function clientSync(){if(CSB||!sb||!ME||ME_ID==='m')return;
+async function clientSync(){if(CSB||!sb||!ME)return;
  const bt=S.tasks.filter(t=>t.bl&&!t.hid&&String(t.blr||'').startsWith('Client ka intezaar'));if(!bt.length)return;CSB=true;
  try{const r=await sb.from('upload_links').select('id,task_id,items,revoked').in('task_id',bt.map(t=>t.id)).eq('revoked',false);if(r.error||!(r.data||[]).length)return;
   const f=await sb.from('upload_files').select('link_id,item_k').in('link_id',r.data.map(x=>x.id)).eq('uploaded',true);if(f.error)return;
@@ -1135,6 +1135,10 @@ async function clientSync(){if(CSB||!sb||!ME||ME_ID==='m')return;
    if(done||got>prev)pingFiles(t.id,to,done?'done':'got',['Received: '+got+' of '+need+' required files'])}
  }catch(e){}finally{CSB=false}}
 setTimeout(clientSync,5000);setInterval(clientSync,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)clientSync()});
+/* instant refresh when a client uploads a file or answers a design review (needs Realtime enabled on these tables) */
+(function(){let tm=null;const bump=()=>{clearTimeout(tm);tm=setTimeout(()=>{for(const k in ULC)ULC[k].at=0;try{ulHook()}catch(_){}clientSync()},700)};
+ try{sb.channel('client-files').on('postgres_changes',{event:'*',schema:'public',table:'upload_files'},bump).on('postgres_changes',{event:'*',schema:'public',table:'design_reviews'},bump).subscribe()}catch(_){}
+ setInterval(()=>{if(!document.hidden)bump()},20000)})();
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="rw"]');if(!b)return;const a=b.dataset.a,t=cur();if(!t||t===NT)return;e.preventDefault();
  if(a==='rwform'){RWF=!RWF;ulDraw(t)}
  else if(a==='rwcopy'){try{await navigator.clipboard.writeText(rwUrl(b.dataset.tk));toast('Link copied')}catch(_){prompt('Copy this link',rwUrl(b.dataset.tk))}}
