@@ -636,7 +636,8 @@ function upd(id,fn){if(NT&&NT.id===id){fn(NT);NT.u=Date.now();render();return}
 function list(){
  let r=vis().filter(t=>(F.hid||!t.hid)&&(!F.q||(t.t+' '+t.d+' '+(t.pj||'')).toLowerCase().includes(F.q))&&(!F.as||t.as===F.as)&&(!F.st||t.st===F.st)&&(!F.pr||t.pr===F.pr)&&(!F.lb||t.tags.includes(F.lb))&&(!F.due||(F.due==='over'?od(t):t.due>=TD&&t.due<=plus(7))));
  const NOD='9999-12-31';return r.sort((a,b)=>F.so==='d'?(a.due||NOD).localeCompare(b.due||NOD):F.so==='p'?(PO[b.pr]||0)-(PO[a.pr]||0):(b.u||0)-(a.u||0))}
-const card=t=>{const n=t.sub.length,dn=t.sub.filter(s=>s.d).length;return `<div class="card${t.id===sel?' on':''}${t.hid?' hd':''}" tabindex="0" draggable="true" data-id="${t.id}"><div class="ct"><b>${esc(t.t)}</b></div>${t.d?`<p>${esc(t.d)}</p>`:''}<div class="tg">${tmtag(t)}${pjtag(t)}${tag(t.tags[0])}${t.st!=='done'?pri(t.pr):''}${t.bl&&t.st!=='done'?'<span class="tag" style="--c:#ef4444">Blocked</span>':''}${t.hid?'<span class="tag" style="--c:#22c55e">Completed</span>':''}${t.st==='review'&&!t.hid?`<button class="cmpb" data-a="cmp" data-id="${t.id}" title="Mark complete and hide from the board">${ic('check',13)}Complete</button>`:''}</div><div class="cmeta">Created ${fcr(t)}</div><div class="ft"><span class="${od(t)?'od':dsoon(t)?'sn':''}" title="Due date">${ic('cal',14)}Due ${fd(t.due)}</span><span>${ic('msg',14)}${t.cm.length}</span><span class="${n&&dn===n?'ok':''}">${ic('check',14)}${dn}/${n}</span><span title="Viewing now" style="display:inline-flex;gap:2px">${vwr(t.id)}</span><span class="mvb"><button data-a="mv" data-id="${t.id}" data-d="-1" aria-label="Move left">${ic('chevr',12).replace('<svg','<svg style="transform:scaleX(-1)"')}</button><button data-a="mv" data-id="${t.id}" data-d="1" aria-label="Move right">${ic('chevr',12)}</button></span><span class="r">${av(t.as,26)}</span></div></div>`};
+function cl(t){if(t.hid||t.st==='done')return '';const n=Date.now(),b=(k,x,l,h)=>x&&x.e>n?`<button class="cmpb" data-a="cardlink" data-k="${k}" data-tk="${esc(x.t)}" title="${h}">${l}</button>`:'';return b('ul',t.ul,'Copy link','Copy the client upload link')+b('rl',t.rl,'Copy review link','Copy the design review link')}
+const card=t=>{const n=t.sub.length,dn=t.sub.filter(s=>s.d).length;return `<div class="card${t.id===sel?' on':''}${t.hid?' hd':''}" tabindex="0" draggable="true" data-id="${t.id}"><div class="ct"><b>${esc(t.t)}</b></div>${t.d?`<p>${esc(t.d)}</p>`:''}<div class="tg">${tmtag(t)}${pjtag(t)}${tag(t.tags[0])}${t.st!=='done'?pri(t.pr):''}${t.bl&&t.st!=='done'?'<span class="tag" style="--c:#ef4444">Blocked</span>':''}${t.hid?'<span class="tag" style="--c:#22c55e">Completed</span>':''}${t.st==='review'&&!t.hid?`<button class="cmpb" data-a="cmp" data-id="${t.id}" title="Mark complete and hide from the board">${ic('check',13)}Complete</button>`:''}${cl(t)}</div><div class="cmeta">Created ${fcr(t)}</div><div class="ft"><span class="${od(t)?'od':dsoon(t)?'sn':''}" title="Due date">${ic('cal',14)}Due ${fd(t.due)}</span><span>${ic('msg',14)}${t.cm.length}</span><span class="${n&&dn===n?'ok':''}">${ic('check',14)}${dn}/${n}</span><span title="Viewing now" style="display:inline-flex;gap:2px">${vwr(t.id)}</span><span class="mvb"><button data-a="mv" data-id="${t.id}" data-d="-1" aria-label="Move left">${ic('chevr',12).replace('<svg','<svg style="transform:scaleX(-1)"')}</button><button data-a="mv" data-id="${t.id}" data-d="1" aria-label="Move right">${ic('chevr',12)}</button></span><span class="r">${av(t.as,26)}</span></div></div>`};
 function stats(){const T=vis(),dn=T.filter(t=>t.st==='done').length,sn=T.filter(dsoon).length;
  const C=[['Active tasks',T.length-dn,'#6d7bff',dn+' done','file'],['Overdue',T.filter(od).length,'#f87171',sn+' due soon','cal'],['In review',T.filter(t=>t.st==='review').length,'#38bdf8','waiting on a reviewer','gauge'],['Blocked',T.filter(t=>t.bl&&t.st!=='done').length,'#f87171','need help','alert']];
  const ppl={};T.filter(t=>t.st!=='done'&&t.as).forEach(t=>ppl[t.as]=(ppl[t.as]||0)+1);const top=Object.keys(ppl).sort((x,y)=>ppl[y]-ppl[x]);
@@ -1092,8 +1093,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
   if(rr.error)return toast('Restore failed: '+rr.error);const r2=await sb.storage.from('client-uploads').createSignedUrl(b.dataset.p,600);if(r2.error)return toast('Restored, but could not open it. Try again.');window.open(r2.data.signedUrl,'_blank','noopener');return};window.open(r.data.signedUrl,'_blank','noopener')}
  else if(a==='ulapp'){const m=(ULC[t.id]||{}).fm||{},x=m[b.dataset.p];if(!x)return toast('Still syncing, try again');const v=!x.approved,r=await sb.from('upload_files').update({approved:v}).eq('path',b.dataset.p);if(r.error)return toast('Could not change approval');x.approved=v;ulDraw(t);toast(v?'Approved. It goes to the website bucket in the next daily run.':'Approval removed')}
  else if(a==='ulpub'){try{await navigator.clipboard.writeText(b.dataset.u);toast('URL copied')}catch(_){prompt('Website URL',b.dataset.u)}}
- else if(a==='ulrev'){const r=await sb.from('upload_links').update({revoked:true}).eq('id',b.dataset.id);if(r.error)return toast('Only the person who made the link can revoke it');
-  upd(t.id,x=>{if(String(x.blr||'').startsWith('Client ka intezaar')){x.bl=false;delete x.blr}});delete ULC[t.id];ulHook();toast('Link revoked')}
+ else if(a==='ulrev'){const rtk=(((ULC[t.id]||{}).L||[]).find(l=>l.id===b.dataset.id)||{}).token,r=await sb.from('upload_links').update({revoked:true}).eq('id',b.dataset.id);if(r.error)return toast('Only the person who made the link can revoke it');
+  upd(t.id,x=>{if(x.ul&&x.ul.t===rtk)delete x.ul;if(String(x.blr||'').startsWith('Client ka intezaar')){x.bl=false;delete x.blr}});delete ULC[t.id];ulHook();toast('Link revoked')}
  else if(a==='ulmk'){const rows=String($('#uli').value||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,20);
   const items=rows.map((r,i)=>{const p=r.split('|').map(x=>x.trim());return{k:'i'+i,label:p[0].slice(0,60),n:Math.max(1,Math.min(30,parseInt(p[1])||1)),req:!/opt/i.test(p[2]||'')}}).filter(i=>i.label);
   if(!items.length)return toast('Add at least one item');
@@ -1103,20 +1104,20 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
   const need=items.filter(i=>i.req).reduce((s,i)=>s+i.n,0);
   const to=[...document.querySelectorAll('#ulbox .uln:checked')].map(z=>z.value),w=[...new Set([ME_ID,t.as,...to].filter(Boolean))],now2=Date.now();
   upd(t.id,x=>{if(!x.bl&&need){x.bl=true;x.blr='Client ka intezaar: 0/'+need+' files'}
-   x.fr={by:ME_ID,at:now2,w};(x.log=x.log||[]).unshift({w:ME_ID,x:'asked the client for files: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,160),at:now2});
+   x.fr={by:ME_ID,at:now2,w};x.ul={t:tok,e:now2+14*864e5};(x.log=x.log||[]).unshift({w:ME_ID,x:'asked the client for files: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,160),at:now2});
    if(to.length)x.fn={ev:'req',by:ME_ID,to,at:now2,n:need}});
   ULF=false;delete DRAFT.uli;delete DRAFT.ule;delete ULC[t.id];try{await navigator.clipboard.writeText(ulUrl(tok));toast('Link created and copied. Send it to the client.')}catch(_){prompt('Send this link to the client',ulUrl(tok))}ulHook();
-  if(to.length)pingFiles(t.id,to,'req',['Needs: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,200),'Requested by: '+mn(ME_ID),'Task is Blocked until the client sends them'],'Link created and copied. ')}
+  pingFiles(t.id,[...new Set([ME_ID,...to])],'req',['Needs: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,200),'Client upload link: '+ulUrl(tok),'Requested by: '+mn(ME_ID),'Task is Blocked until the client sends them'],'Link created and copied. ')}
 });
 
 /* ---- File request notifications + automatic client progress ---- */
 async function pingFiles(id,to,ev,extra,pre){const t=S.tasks.find(x=>x.id===id);if(!t||!to.length)return;
- const head=ev==='req'?'Files requested from the client':ev==='done'?'Client sent all required files':'Client uploaded files',
+ const head=ev==='req'?'Files requested from the client':ev==='done'?'Client sent all required files':ev==='rv'?'Design review link created':'Client uploaded files',
   lines=[head,'TASK-'+t.id+': '+String(t.t).slice(0,200),...extra,location.origin+location.pathname+'#task-'+t.id],ok=[],bell=[],bad=[];
  for(const pid of to){const p=PEOPLE[pid]||{},nm=mn(pid);let got=false;
   if(p.tg&&TGT.test(AL.tg||''))try{await tgSend(AL.tg,p.tg,'📎 '+lines.join('\n'));got=true}catch(e){bad.push(nm+': '+e.message)}
   if(slUrl(p.sl))try{await slSend(p.sl,'📎 *'+slEsc(lines[0])+'*\n'+lines.slice(1).map(slEsc).join('\n'));got=true}catch(e){bad.push(nm+': '+e.message)}
-  (got?ok:bell).push(nm)}
+  if(got)ok.push(nm);else if(pid!==ME_ID)bell.push(nm)}
  if(pre!==undefined||ev==='done')toast((pre||'')+(ok.length?'Alert sent to '+ok.join(', ')+'. ':'')+(bell.length?bell.join(', ')+' will see it under the bell'+(ok.length?'':' (no Telegram or Slack set up)')+'. ':'')+(bad.length?'Problem: '+bad.join('; '):''))}
 let CSB=false;
 async function clientSync(){if(CSB||!sb||!ME)return;
@@ -1169,7 +1170,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
     const m=await sb.rpc('review_mark_restored',{p_id:b.dataset.id,p_v:v.v});if(m.error)return toast('Files are back, but could not update the review: '+m.error.message);
     toast('Version '+v.v+' restored');o.remove();delete ULC[t.id];ulHook();if(b.isConnected)b.click()})};
   draw()}
- else if(a==='rwrev'){const r=await sb.from('design_reviews').update({revoked:true}).eq('id',b.dataset.id);if(r.error)return toast('Only the person who made the link can revoke it');delete ULC[t.id];ulHook();toast('Link revoked')}
+ else if(a==='rwrev'){const wtk=(((ULC[t.id]||{}).R||[]).find(l=>l.id===b.dataset.id)||{}).token,r=await sb.from('design_reviews').update({revoked:true}).eq('id',b.dataset.id);if(r.error)return toast('Only the person who made the link can revoke it');if(t.rl&&t.rl.t===wtk)upd(t.id,x=>{delete x.rl});delete ULC[t.id];ulHook();toast('Link revoked')}
  else if(a==='rwmk'){const title=($('#rwt').value||'').trim().slice(0,80),fl=[...$('#rwf').files],EX={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','application/pdf':'pdf'};
   if(!title)return toast('Give the design a title');if(!fl.length||fl.length>12)return toast('Choose 1 to 12 files');
   if(fl.some(f=>!EX[f.type]||f.size>25*1024*1024))return toast('Only JPG, PNG, WebP or PDF up to 25 MB');
@@ -1178,7 +1179,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
    if(r.error){b.disabled=false;return toast('Upload failed: '+r.error.message)}files.push({n:f.name.slice(0,100),p,k:f.type})}
   const r=await sb.from('design_reviews').insert({token:tok,task_id:t.id,title,files,client_email:/^\S+@\S+\.\S+$/.test($('#rwe').value.trim())?$('#rwe').value.trim():null,expires_at:new Date(Date.now()+30*864e5).toISOString()});
   if(r.error){b.disabled=false;return toast('Could not create review: '+r.error.message)}
-  RWF=false;delete ULC[t.id];try{await navigator.clipboard.writeText(rwUrl(tok));toast('Review link copied. Send it to the client.')}catch(_){prompt('Send this link to the client',rwUrl(tok))}ulHook()}
+  upd(t.id,x=>{x.rl={t:tok,e:Date.now()+30*864e5}});RWF=false;delete ULC[t.id];try{await navigator.clipboard.writeText(rwUrl(tok));toast('Review link copied and sent to Slack/Telegram.')}catch(_){prompt('Send this link to the client',rwUrl(tok))}ulHook();pingFiles(t.id,[...new Set([ME_ID,t.as].filter(Boolean))],'rv',['Review link for the client: '+rwUrl(tok),'Title: '+title])}
 });
 const BIGN=60000,pendKey=()=>'tt-pend:'+ME_ID;
 function bigDirty(){const o=[];try{for(const c in KEY)for(const d of S[KEY[c]]){const j=cj(d);if(j.length>=BIGN&&R[c][String(d.id)]!==j)o.push({c,k:String(d.id),doc:d})}}catch(e){}return o}
@@ -1192,6 +1193,8 @@ function restoreBig(){let b=[];try{b=JSON.parse(localStorage.getItem(pendKey())|
 addEventListener('beforeunload',e=>{if(bigDirty().length){stashBig();e.preventDefault();e.returnValue=''}});
 addEventListener('pagehide',()=>{clearTimeout(tm);stashBig();flush()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(tm);flush()}});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-a="cardlink"]');if(!b)return;e.stopPropagation();e.preventDefault();
+ const u=(b.dataset.k==='rl'?rwUrl:ulUrl)(b.dataset.tk);try{await navigator.clipboard.writeText(u);toast('Link copied')}catch(_){prompt('Copy this link',u)}},true);
 </script><script>
 /* mobile drawer menu: open with the hamburger, close with a tap outside, Esc, a menu choice, or when the screen grows */
 (()=>{const b=document.body,m=document.getElementById('mnu'),Q=matchMedia('(max-width:700px)');
