@@ -247,7 +247,8 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 .ulh{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
 .ulh>div{min-width:0}.ulh .bo{padding:6px 12px;font-size:13px;flex:none}
 #ulbox{display:flow-root}
-#panel .tabs{gap:12px}
+#panel .tabs{gap:10px}#panel .tabs button{font-size:12px}#panel .tabs i{padding:0 4px}
+#ulbox .bo{padding:6px 12px;font-size:13px;min-height:0}#ulbox .bx{padding:10px 12px}
 </style></head>
 <body>
 <div id="app">
@@ -737,6 +738,8 @@ const norm=o=>{o.id=+o.id||o.id;if(o.pr!==undefined&&!hp(PO,o.pr)){o.ps=o.pr||''
   if(c.men!==undefined&&!Array.isArray(c.men))c.men=[];return c});
  if(o.log!==undefined)o.log=(Array.isArray(o.log)?o.log:[]).filter(isO).map(l=>({...l,w:String(l.w==null?'':l.w),x:String(l.x==null?'':l.x),at:+l.at||0}));
  if(o.hal!==undefined&&!isO(o.hal))delete o.hal;
+ if(o.fn!==undefined&&!isO(o.fn))delete o.fn;
+ if(o.fr!==undefined&&!isO(o.fr))delete o.fr;
  return o};
 /* a damaged document must never be able to break drawing the whole board */
 const sf=(f,d='')=>{try{return f()}catch(e){console.error(e);return d}};
@@ -764,9 +767,9 @@ function stk(){const seen=new Set(),on=[];onl().forEach(p=>{if(p.u&&!seen.has(p.
 const mentions=v=>M.filter(m=>{const f=m[1].split(' ')[0].replace(/\W/g,'');return f&&new RegExp('@'+f+'\\b','i').test(v)}).map(m=>m[0]);
 const mkc=v=>({a:ME_ID,t:v,w:'Just now',at:Date.now(),men:mentions(v)});
 const mt=t=>esc(t).replace(/@(\w+)/g,(x,n)=>{const m=M.find(z=>z[1].split(' ')[0].toLowerCase()===n.toLowerCase());return m?`<span class="mt">@${esc(m[1].split(' ')[0])}</span>`:x});
-const MEN=()=>{const o=[];S.tasks.forEach(t=>{(t.cm||[]).forEach(c=>{if((c.men||[]).includes(ME_ID)&&c.a!==ME_ID)o.push({t,c})});const h=t.hal;if(h&&h.to===ME_ID&&h.by!==ME_ID&&t.as===ME_ID&&t.pr==='High'&&t.st!=='done'&&!t.hid)o.push({t,c:{a:h.by,t:'High priority',at:h.at,hp:1}})});return o.sort((a,b)=>(b.c.at||0)-(a.c.at||0))};
+const MEN=()=>{const o=[];S.tasks.forEach(t=>{(t.cm||[]).forEach(c=>{if((c.men||[]).includes(ME_ID)&&c.a!==ME_ID)o.push({t,c})});const f=t.fn;if(f&&(f.to||[]).includes(ME_ID)&&f.by!==ME_ID&&!t.hid)o.push({t,c:{a:f.by,t:'',at:f.at,fn:f.ev,n:f.n}});const h=t.hal;if(h&&h.to===ME_ID&&h.by!==ME_ID&&t.as===ME_ID&&t.pr==='High'&&t.st!=='done'&&!t.hid)o.push({t,c:{a:h.by,t:'High priority',at:h.at,hp:1}})});return o.sort((a,b)=>(b.c.at||0)-(a.c.at||0))};
 function showMen(){const d=$('#mdd');if(!d.hidden){d.hidden=true;return}const L=MEN().slice(0,15);
- d.innerHTML=L.length?L.map(x=>`<div class="mi" data-a="gt" data-id="${x.t.id}">${x.c.hp?`<b>${esc(mn(x.c.a))}</b> assigned you a <b>High priority</b> task<br><small style="color:var(--mut)">${esc(x.t.t)}</small>`:`<b>${esc(mn(x.c.a))}</b> mentioned you in <b>${esc(x.t.t)}</b><br><small style="color:var(--mut)">${esc(x.c.t.slice(0,90))}</small>`}</div>`).join(''):'<p class="mut" style="margin:8px">No alerts yet. @mentions and High priority tasks assigned to you show up here.</p>';
+ d.innerHTML=L.length?L.map(x=>`<div class="mi" data-a="gt" data-id="${x.t.id}">${x.c.fn?`<b>${x.c.a==='client'?'Client':esc(mn(x.c.a))}</b> ${x.c.fn==='req'?'asked the client for files on':x.c.fn==='done'?'sent all required files on':'uploaded files on'} <b>${esc(x.t.t)}</b><br><small style="color:var(--mut)">${x.c.fn==='req'?'Task is blocked until the files arrive':esc(String(x.t.blr||'').replace('Client ka intezaar: ','')||'Task unblocked')}</small>`:x.c.hp?`<b>${esc(mn(x.c.a))}</b> assigned you a <b>High priority</b> task<br><small style="color:var(--mut)">${esc(x.t.t)}</small>`:`<b>${esc(mn(x.c.a))}</b> mentioned you in <b>${esc(x.t.t)}</b><br><small style="color:var(--mut)">${esc(x.c.t.slice(0,90))}</small>`}</div>`).join(''):'<p class="mut" style="margin:8px">No alerts yet. @mentions, High priority tasks and client file updates show up here.</p>';
  d.hidden=false;SEEN=Date.now();try{localStorage.setItem('tt-seen',String(SEEN))}catch(e){}$('#bell').classList.remove('dot')}
 const vc=(p,v)=>Object.values(p.votes||{}).filter(x=>x===v).length,my=p=>(p.votes||{})[ME_ID];
 let GI=-1,GOPT=false;
@@ -1066,8 +1069,8 @@ const ULC={};let ULF=false,RWF=false;const rwUrl=tok=>new URL('client-review.htm
 const RWS={pending:'Waiting for client',approved:'Approved ✓',changes:'Changes requested'};
 const ulUrl=tok=>new URL('client-upload.html',location.href).href+'#'+tok;
 function ulDraw(t){const b=$('#ulbox');if(!b)return;const c=ULC[t.id]||{L:[],fc:{}},now=Date.now(),act=c.L.filter(l=>!l.revoked&&new Date(l.expires_at)>now);
- b.innerHTML=`<div class="ulh"><div><b>Client files</b>${c.mb!=null?`<small style="color:var(--mut)">${c.mb} MB used by all clients</small>`:''}</div><button class="bo" data-a="ulform">${ULF?'Cancel':'Request files'}</button></div>
- ${ULF?`<small style="display:block;margin:8px 0 4px">One item per line: <code>Name | how many | optional</code>. The client gets a link, no login needed. The task is marked Blocked until all required files arrive.</small><input id="ule" type="email" class="nsub" style="margin:6px 0" placeholder="Client email (optional, for 2-day reminders)" value="${esc(DRAFT.ule||'')}"><textarea id="uli" rows="5" placeholder="Logo PNG/SVG | 1&#10;Hero images | 5&#10;Services PDF | 1&#10;Brand guide | 1 | optional">${esc(DRAFT.uli||'')}</textarea><div style="margin-top:8px"><button class="pr" data-a="ulmk">Create link (valid 14 days)</button></div>`:''}
+ b.innerHTML=`<div class="ulh"><div><b>Client files</b>${c.mb!=null?`<small style="color:var(--mut)">${c.mb} MB used by all clients</small>`:''}${t.fr&&t.fr.by?`<small style="color:var(--mut)">Requested by ${esc(mn(t.fr.by))}${t.fr.at?', '+esc(tm2(t.fr.at)):''}</small>`:''}</div><button class="bo" data-a="ulform">${ULF?'Cancel':'Request files'}</button></div>
+ ${ULF?`<small style="display:block;margin:8px 0 4px">One item per line: <code>Name | how many | optional</code>. The client gets a link, no login needed. The task is marked Blocked until all required files arrive.</small><input id="ule" type="email" class="nsub" style="margin:6px 0" placeholder="Client email (optional, for 2-day reminders)" value="${esc(DRAFT.ule||'')}"><small style="display:block;margin:6px 0 2px">Tell teammates (bell, plus Telegram or Slack if they set it up)</small>${RMEM().filter(m=>m[0]!==ME_ID).map(m=>`<label style="display:flex;gap:6px;align-items:center;font-size:13px;margin:2px 0"><input type="checkbox" class="uln" value="${esc(m[0])}" checked>${esc(m[1])}</label>`).join('')||'<small>No other teammates in this team.</small>'}<textarea id="uli" rows="5" placeholder="Logo PNG/SVG | 1&#10;Hero images | 5&#10;Services PDF | 1&#10;Brand guide | 1 | optional">${esc(DRAFT.uli||'')}</textarea><div style="margin-top:8px"><button class="pr" data-a="ulmk">Create link (valid 14 days)</button></div>`:''}
  ${act.map(l=>`<div class="bx" style="margin-top:8px"><small>Link expires ${fd(String(l.expires_at).slice(0,10))}</small>${l.items.map(i=>`<div style="font-size:13px">${esc(i.label)}: ${Math.min(c.fc[l.id+i.k]||0,99)}/${i.n} ${i.req?'':'(optional)'}</div>`).join('')}
  <div style="display:flex;gap:8px;margin-top:8px"><button class="bo" data-a="ulcopy" data-tk="${esc(l.token)}">Copy link</button><button class="bo" data-a="ulrev" data-id="${esc(l.id)}">Revoke</button></div></div>`).join('')}
  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)"><div class="ulh"><b>Design review</b><button class="bo" data-a="rwform">${RWF?'Cancel':'Send design'}</button></div>
@@ -1097,9 +1100,41 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
   const em=String(DRAFT.ule||'').trim(),r=await sb.from('upload_links').insert({token:tok,task_id:t.id,items,client_email:/^\S+@\S+\.\S+$/.test(em)?em:null,expires_at:new Date(Date.now()+14*864e5).toISOString()});
   if(r.error)return toast('Could not create link: '+r.error.message);
   const need=items.filter(i=>i.req).reduce((s,i)=>s+i.n,0);
-  upd(t.id,x=>{if(!x.bl&&need){x.bl=true;x.blr='Client ka intezaar: 0/'+need+' files'}});
-  ULF=false;delete DRAFT.uli;delete DRAFT.ule;delete ULC[t.id];try{await navigator.clipboard.writeText(ulUrl(tok));toast('Link created and copied. Send it to the client.')}catch(_){prompt('Send this link to the client',ulUrl(tok))}ulHook()}
+  const to=[...document.querySelectorAll('#ulbox .uln:checked')].map(z=>z.value),w=[...new Set([ME_ID,t.as,...to].filter(Boolean))],now2=Date.now();
+  upd(t.id,x=>{if(!x.bl&&need){x.bl=true;x.blr='Client ka intezaar: 0/'+need+' files'}
+   x.fr={by:ME_ID,at:now2,w};(x.log=x.log||[]).unshift({w:ME_ID,x:'asked the client for files: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,160),at:now2});
+   if(to.length)x.fn={ev:'req',by:ME_ID,to,at:now2,n:need}});
+  ULF=false;delete DRAFT.uli;delete DRAFT.ule;delete ULC[t.id];try{await navigator.clipboard.writeText(ulUrl(tok));toast('Link created and copied. Send it to the client.')}catch(_){prompt('Send this link to the client',ulUrl(tok))}ulHook();
+  if(to.length)pingFiles(t.id,to,'req',['Needs: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,200),'Requested by: '+mn(ME_ID),'Task is Blocked until the client sends them'],'Link created and copied. ')}
 });
+
+/* ---- File request notifications + automatic client progress ---- */
+async function pingFiles(id,to,ev,extra,pre){const t=S.tasks.find(x=>x.id===id);if(!t||!to.length)return;
+ const head=ev==='req'?'Files requested from the client':ev==='done'?'Client sent all required files':'Client uploaded files',
+  lines=[head,'TASK-'+t.id+': '+String(t.t).slice(0,200),...extra,location.origin+location.pathname+'#task-'+t.id],ok=[],bell=[],bad=[];
+ for(const pid of to){const p=PEOPLE[pid]||{},nm=mn(pid);let got=false;
+  if(p.tg&&TGT.test(AL.tg||''))try{await tgSend(AL.tg,p.tg,'📎 '+lines.join('\n'));got=true}catch(e){bad.push(nm+': '+e.message)}
+  if(slUrl(p.sl))try{await slSend(p.sl,'📎 *'+slEsc(lines[0])+'*\n'+lines.slice(1).map(slEsc).join('\n'));got=true}catch(e){bad.push(nm+': '+e.message)}
+  (got?ok:bell).push(nm)}
+ if(pre!==undefined||ev==='done')toast((pre||'')+(ok.length?'Alert sent to '+ok.join(', ')+'. ':'')+(bell.length?bell.join(', ')+' will see it under the bell'+(ok.length?'':' (no Telegram or Slack set up)')+'. ':'')+(bad.length?'Problem: '+bad.join('; '):''))}
+let CSB=false;
+async function clientSync(){if(CSB||!sb||!ME||ME_ID==='m')return;
+ const bt=S.tasks.filter(t=>t.bl&&!t.hid&&String(t.blr||'').startsWith('Client ka intezaar'));if(!bt.length)return;CSB=true;
+ try{const r=await sb.from('upload_links').select('id,task_id,items,revoked').in('task_id',bt.map(t=>t.id)).eq('revoked',false);if(r.error||!(r.data||[]).length)return;
+  const f=await sb.from('upload_files').select('link_id,item_k').in('link_id',r.data.map(x=>x.id)).eq('uploaded',true);if(f.error)return;
+  const fc={};(f.data||[]).forEach(x=>{const k=x.link_id+'|'+x.item_k;fc[k]=(fc[k]||0)+1});
+  for(const t of bt){let need=0,got=0;
+   r.data.filter(l=>String(l.task_id)===String(t.id)).forEach(l=>(l.items||[]).forEach(i=>{if(i.req){need+=i.n;got+=Math.min(fc[l.id+'|'+i.k]||0,i.n)}}));
+   if(!need)continue;
+   const m=String(t.blr).match(/(\d+)\/(\d+)/),prev=m?+m[1]:0,txt='Client ka intezaar: '+got+'/'+need+' files',done=got>=need;
+   if(!done&&got===prev&&t.blr===txt)continue;
+   const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;   /* never interrupt typing, try again next minute */
+   const w=((t.fr&&t.fr.w)||[]).filter(Boolean),to=w.length?w:[t.as].filter(Boolean),now=Date.now(),msg=done?'all required client files received ('+got+'/'+need+')':'client uploaded files ('+got+'/'+need+')';
+   upd(t.id,x=>{if(done){x.bl=false;delete x.blr}else x.blr=txt;
+    if(done||got>prev){(x.log=x.log||[]);if(!(x.log[0]&&x.log[0].x===msg))x.log.unshift({w:ME_ID,x:msg,at:now});x.fn={ev:done?'done':'got',by:'client',to,at:now,n:need}}});
+   if(done||got>prev)pingFiles(t.id,to,done?'done':'got',['Received: '+got+' of '+need+' required files'])}
+ }catch(e){}finally{CSB=false}}
+setTimeout(clientSync,5000);setInterval(clientSync,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)clientSync()});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="rw"]');if(!b)return;const a=b.dataset.a,t=cur();if(!t||t===NT)return;e.preventDefault();
  if(a==='rwform'){RWF=!RWF;ulDraw(t)}
  else if(a==='rwcopy'){try{await navigator.clipboard.writeText(rwUrl(b.dataset.tk));toast('Link copied')}catch(_){prompt('Copy this link',rwUrl(b.dataset.tk))}}
