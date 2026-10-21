@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design review</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--tx:#14161f;--mut:#6b7080;--bd:#e3e5ec;--pr:#3b6cff;--ok:#16a34a;--warn:#d97706}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0d14;--card:#141824;--tx:#f3f4f6;--mut:#9aa0b3;--bd:#262b3b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+.w{max-width:900px;margin:0 auto;padding:24px 16px 60px}h1{font-size:22px;margin:8px 0 2px}.m{color:var(--mut);font-size:13px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:12px 0}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;border:1px solid var(--bd)}
+.pill.approved{color:var(--ok);border-color:var(--ok)}.pill.changes{color:var(--warn);border-color:var(--warn)}
+.img{position:relative;line-height:0;cursor:crosshair}.img img{width:100%;border-radius:10px;display:block}
+.pin{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--pr);color:#fff;font:700 12px/24px system-ui;text-align:center;line-height:24px}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:600}
+button.p{background:var(--pr);border-color:var(--pr);color:#fff}button.g{background:var(--ok);border-color:var(--ok);color:#fff}button:disabled{opacity:.5}
+textarea,input[type=text]{width:100%;font:inherit;padding:9px;border-radius:9px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.n{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0}.n a{color:#dc2626;cursor:pointer;font-size:12px}
+.msg{font-size:14px;margin:4px 0}.msg b{color:var(--mut)}.big{text-align:center;padding:60px 10px}
+</style></head><body><div class="w" id="app"><div class="big m">Loading…</div></div>
+<script>
+const SB_URL='https://manavdb.duckdns.org',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkyMDIzMzkxLCJleHAiOjE5NDk3MDMzOTF9.ES_ordI1hLnb5Xuj_0AUqr2x0MK7Be2rXA-hc9YMKxI';
+const sb=supabase.createClient(SB_URL,SB_KEY),tok=location.hash.slice(1),app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let D=null,U={},notes=[],comment='',ver=0,sending=false;
+const ST={pending:'Waiting for your feedback',approved:'Approved ✓',changes:'Changes requested'};
+async function load(first){
+ if(!/^[0-9a-f]{64}$/.test(tok)){app.innerHTML='<div class="big"><h1>Link not valid</h1><p class="m">Please ask for a new link.</p></div>';return}
+ const r=await sb.rpc('pub_review_get',{p_token:tok});
+ if(r.error||!r.data){app.innerHTML='<div class="big"><h1>This link has expired</h1><p class="m">Please ask for a new one.</p></div>';return}
+ const nv=r.data.version!==ver;D=r.data;
+ if(nv){ver=D.version;notes=(D.status==='pending'?[]:D.notes||[]).slice();comment=D.status==='pending'?'':(D.comment||'');
+  const ps=(D.files||[]).map(f=>f.p);U={};if(ps.length&&!D.purged){const s=await sb.storage.from('client-uploads').createSignedUrls(ps,3600);(s.data||[]).forEach(x=>{if(x.path)U[x.path]=x.signedUrl})}}
+ draw()}
+function draw(){
+ const fl=D.files||[],pend=D.status==='pending';
+ app.innerHTML='<h1>'+esc(D.title)+'</h1><div class="m">Version '+D.version+' · <span class="pill '+esc(D.status)+'">'+esc(ST[D.status]||'')+'</span></div>'+
+ (D.purged?'<div class="c m">These files are archived. Ask the team to restore them.</div>':'')+
+ '<p class="m">Tap on an image to drop a numbered pin and write your feedback for that spot.</p>'+
+ fl.map((f,i)=>'<div class="c"><div class="m" style="margin-bottom:6px">'+(i+1)+'. '+esc(f.n)+'</div>'+
+  (/^image\//.test(f.k)?'<div class="img" data-f="'+i+'"><img src="'+esc(U[f.p]||'')+'" alt="">'+notes.map((n,j)=>n.f===i&&n.x!=null?'<span class="pin" style="left:'+n.x+'%;top:'+n.y+'%">'+(j+1)+'</span>':'').join('')+'</div>':
+   '<iframe src="'+esc(U[f.p]||'')+'" style="width:100%;height:520px;border:0;border-radius:10px"></iframe><div class="m"><a href="'+esc(U[f.p]||'#')+'" target="_blank" rel="noopener">Open in new tab</a></div>')+'</div>').join('')+
+ '<div class="c"><b>Your notes</b>'+(notes.length?notes.map((n,j)=>'<div class="n"><span>'+(j+1)+'. File '+(n.f+1)+(n.x!=null?' (pin)':'')+': '+esc(n.t)+'</span><a data-del="'+j+'">remove</a></div>').join(''):'<div class="m">No notes yet.</div>')+
+  '<textarea id="cm" rows="3" maxlength="2000" placeholder="Overall comment (optional)" style="margin-top:10px">'+esc(comment)+'</textarea>'+
+  '<div class="row"><button class="g" data-s="approved"'+(sending?' disabled':'')+'>Approve</button><button class="p" data-s="changes"'+(sending?' disabled':'')+'>Request changes</button></div></div>'+
+ '<div class="c"><b>Messages</b>'+((D.thread||[]).map(m=>'<div class="msg"><b>'+(m.by==='team'?'Team':'You')+':</b> '+esc(m.t)+'</div>').join('')||'<div class="m">No messages yet.</div>')+
+  '<div class="row"><input type="text" id="mg" maxlength="1000" placeholder="Write a message" style="flex:1;min-width:180px"><button data-send>Send</button></div></div>'}
+app.addEventListener('input',e=>{if(e.target.id==='cm')comment=e.target.value});
+app.addEventListener('click',async e=>{
+ const im=e.target.closest('.img');
+ if(im&&e.target.tagName==='IMG'){const r=im.getBoundingClientRect(),x=Math.round((e.clientX-r.left)/r.width*1000)/10,y=Math.round((e.clientY-r.top)/r.height*1000)/10,t=prompt('Your feedback for this spot:');if(t&&t.trim()){notes.push({f:+im.dataset.f,x,y,t:t.trim().slice(0,500)});draw()}return}
+ const dl=e.target.closest('[data-del]');if(dl){notes.splice(+dl.dataset.del,1);draw();return}
+ const sd=e.target.closest('[data-send]');
+ if(sd){const i=document.getElementById('mg'),v=i.value.trim();if(!v)return;sd.disabled=true;
+  const r=await sb.rpc('pub_review_msg',{p_token:tok,p_text:v});if(r.error){alert('Could not send: '+r.error.message);sd.disabled=false;return}load();return}
+ const b=e.target.closest('[data-s]');
+ if(b){const s=b.dataset.s;if(s==='changes'&&!notes.length&&!comment.trim())return alert('Please add a note or comment so the team knows what to change.');
+  if(!confirm(s==='approved'?'Approve this design?':'Send your change requests?'))return;sending=true;draw();
+  const r=await sb.rpc('pub_review_submit',{p_token:tok,p_status:s,p_comment:comment.trim(),p_notes:notes});sending=false;
+  if(r.error){alert('Could not send: '+r.error.message);draw();return}ver=0;load()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&D&&!notes.length&&!comment){const v=ver;load()}});
+load();
+</script></body></html>

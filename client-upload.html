@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Send your files</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--tx:#14161f;--mut:#6b7080;--bd:#e3e5ec;--pr:#3b6cff;--ok:#16a34a}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0d14;--card:#141824;--tx:#f3f4f6;--mut:#9aa0b3;--bd:#262b3b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+.w{max-width:620px;margin:0 auto;padding:24px 16px 60px}h1{font-size:22px;margin:8px 0 4px}p.s{color:var(--mut);margin:0 0 18px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px}
+.r{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.t{font-weight:600}.m{color:var(--mut);font-size:13px}.ok{color:var(--ok)}
+.bar{height:6px;background:var(--bd);border-radius:9px;margin:10px 0;overflow:hidden}.bar i{display:block;height:100%;background:var(--pr);width:0;transition:width .3s}
+.bar.done i{background:var(--ok)}
+label.b{display:inline-block;background:var(--pr);color:#fff;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:600;font-size:14px}
+label.b.off{opacity:.45;pointer-events:none}input[type=file]{display:none}
+ul{margin:8px 0 0;padding:0;list-style:none}li{font-size:13px;color:var(--mut);padding:2px 0}li.e{color:#dc2626}
+.big{text-align:center;padding:60px 10px}
+</style></head><body><div class="w" id="app"><div class="big m">Loading…</div></div>
+<script>
+const SB_URL='https://manavdb.duckdns.org',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkyMDIzMzkxLCJleHAiOjE5NDk3MDMzOTF9.ES_ordI1hLnb5Xuj_0AUqr2x0MK7Be2rXA-hc9YMKxI';
+const sb=supabase.createClient(SB_URL,SB_KEY),tok=location.hash.slice(1),app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let info=null;const busy={},errs={};
+async function load(){
+ if(!/^[0-9a-f]{64}$/.test(tok)){app.innerHTML='<div class="big"><h1>Link not valid</h1><p class="m">Please ask for a new link.</p></div>';return}
+ const r=await sb.rpc('pub_upload_info',{p_token:tok});
+ if(r.error||!r.data){app.innerHTML='<div class="big"><h1>This link has expired</h1><p class="m">Please ask for a new one.</p></div>';return}
+ info=r.data;draw()}
+function draw(){
+ const items=info.items||[],files=info.files||[];
+ const allDone=items.filter(i=>i.req).every(i=>files.filter(f=>f.k===i.k).length>=i.n);
+ app.innerHTML='<h1>Send your files</h1><p class="s">Upload the items below. No login needed.'+(allDone?' <b class="ok">All required files received. Thank you!</b>':'')+'</p>'+
+ items.map(i=>{const mine=files.filter(f=>f.k===i.k),got=Math.min(mine.length,i.n),left=i.n-mine.length;
+  return '<div class="c"><div class="r"><div><div class="t">'+esc(i.label)+'</div><div class="m">'+got+' of '+i.n+(i.req?'':' (optional)')+'</div></div>'+
+  '<label class="b'+((left<=0||busy[i.k])?' off':'')+'">'+(busy[i.k]?'Uploading…':left<=0?'Done ✓':'Choose file'+(left>1?'s':''))+'<input type="file" data-k="'+esc(i.k)+'"'+(left>1?' multiple':'')+'></label></div>'+
+  '<div class="bar'+(left<=0?' done':'')+'"><i style="width:'+Math.round(got/i.n*100)+'%"></i></div>'+
+  '<ul>'+mine.map(f=>'<li>✓ '+esc(f.n)+'</li>').join('')+(errs[i.k]?'<li class="e">'+esc(errs[i.k])+'</li>':'')+'</ul></div>'}).join('')}
+app.addEventListener('change',async e=>{
+ const inp=e.target;if(!inp.matches||!inp.matches('input[type=file]'))return;const k=inp.dataset.k,it=info.items.find(i=>i.k===k);
+ const left=it.n-(info.files||[]).filter(f=>f.k===k).length,fl=[...inp.files].slice(0,Math.max(left,0));if(!fl.length)return;
+ busy[k]=1;errs[k]='';draw();
+ for(const f of fl){
+  try{
+   if(f.size>50*1024*1024)throw new Error(f.name+' is larger than 50 MB');
+   const b=await sb.rpc('pub_upload_begin',{p_token:tok,p_item:k,p_name:f.name,p_size:f.size,p_mime:f.type||'application/octet-stream'});
+   if(b.error)throw new Error(b.error.message);
+   const u=await sb.storage.from('client-uploads').upload(b.data,f,{contentType:f.type||'application/octet-stream'});
+   if(u.error)throw new Error('Upload failed: '+u.error.message);
+   const d=await sb.rpc('pub_upload_done',{p_token:tok,p_path:b.data});
+   if(d.error||!d.data)throw new Error('Could not confirm '+f.name);
+   (info.files=info.files||[]).push({k,n:f.name})
+  }catch(x){errs[k]=x.message;break}}
+ busy[k]=0;draw()});
+load();
+</script></body></html>
