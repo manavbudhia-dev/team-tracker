@@ -265,6 +265,15 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 #ulbox{display:flow-root}
 #panel .tabs{gap:10px}#panel .tabs button{font-size:12px}#panel .tabs i{padding:0 4px}
 #ulbox .bo{padding:6px 12px;font-size:13px;min-height:0}#ulbox .bx{padding:10px 12px}
+#rmd{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;display:grid;place-items:center;padding:16px}
+.rmm{background:var(--cd);color:var(--tx);border:1px solid var(--bd);border-radius:14px;width:min(520px,100%);max-height:90vh;overflow:auto;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.rmh{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;margin-bottom:6px}.rmh>div{display:flex;gap:10px;align-items:center}.rmh small{display:block;color:var(--mut)}.rmh>button{border:0;background:none;color:var(--mut);padding:6px}
+.rmc{border:1px solid var(--bd);border-left:4px solid var(--c);border-radius:10px;margin-top:10px;background:var(--bg)}.rmc.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,var(--cd))}.rmc.off{opacity:.55}
+.rmr{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;cursor:pointer}.rmc.off .rmr{cursor:not-allowed}.rmr input{margin-top:3px;flex:none}.rmr small{display:block;color:var(--mut);margin-top:2px}
+.rmb{padding:0 12px 12px 34px;display:grid;gap:8px}.rmb select,.rmb input[type=text]{width:100%;padding:8px;box-sizing:border-box}.rmk{display:flex;gap:8px;align-items:center}
+.rmx{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hv)}.rmf{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.rmf .pr.dg{background:#dc2626;border-color:#dc2626}.rmf .pr:disabled{opacity:.45;cursor:not-allowed}
+.rmp{white-space:pre-wrap;word-break:break-word;background:var(--hv);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0 0}.rmb small{color:var(--mut)}
 </style></head>
 <body>
 <div id="app">
@@ -585,7 +594,7 @@ function ctxIn(t){const base=R.ctx,loc=S.ctx;if(t===base)return;
  if(DRAFT.cx!=null){DRAFT.cx=merge3(CXB,DRAFT.cx,t);CXB=t}
  if(m!==t)save()}
 /* in-progress limit: checked locally, then settled deterministically once everyone's moves have arrived */
-const wipMsg=t=>CFG.wip&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip?mn(t.as)+' already has '+CFG.wip+' tasks in progress.':'';
+const wipMsg=t=>CFG.wip&&t.as&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip?mn(t.as)+' already has '+CFG.wip+' tasks in progress.':'';
 function enforceWip(){const w=CFG.wip;if(!w)return;const by={};
  S.tasks.forEach(t=>{if(t.st==='doing'&&t.as)(by[t.as]=by[t.as]||[]).push(t)});let ch=false;
  for(const p in by){const over=by[p].length-w;if(over<=0)continue;
@@ -682,7 +691,7 @@ function panel(){const t=cur(),P=$('#panel');if(!t){P.classList.remove('open');r
  <input class="pt" id="pt" value="${esc(t.t)}" placeholder="Untitled task" aria-label="Task title">
  <div class="g2"><label>Status<select id="ps">${ST.map(s=>`<option value="${s[0]}"${t.st===s[0]?' selected':''}>${s[1]}</option>`).join('')}</select></label>
  <label>Priority<select id="pp" style="color:${PR[t.pr]}">${Object.keys(PR).map(p=>`<option${t.pr===p?' selected':''}>${p}</option>`).join('')}</select></label>
- <label>Assignee<select id="pa">${asg(t).map(m=>`<option value="${esc(m[0])}"${t.as===m[0]?' selected':''}>${esc(m[1])}</option>`).join('')}</select></label>
+ <label>Assignee<select id="pa"><option value=""${t.as?'':' selected'}>Unassigned</option>${asg(t).map(m=>`<option value="${esc(m[0])}"${t.as===m[0]?' selected':''}>${esc(m[1])}</option>`).join('')}</select>${t.as?`<button type="button" class="bo" data-a="unas" style="margin-top:6px;padding:6px 10px;font-size:12px;color:#ef4444">Remove from this task</button>`:''}</label>
  <label>Due date<input type="date" id="pd" value="${esc(t.due||'')}"></label>
  <label style="grid-column:1/3">Project<input id="ppj" list="pjl" maxlength="60" value="${esc(t.pj||'')}" placeholder="Project name, for example Mobile app"><datalist id="pjl">${[...new Set(S.tasks.map(x=>x.pj).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('')}</datalist></label>
  <label style="grid-column:1/3">Team<select id="ptm"><option value="">No team</option>${tms.map(x=>`<option value="${esc(x.id)}"${String(t.tm)===String(x.id)?' selected':''}>${esc(x.n)}</option>`).join('')}</select></label></div>
@@ -713,6 +722,118 @@ const toast=(m,fn)=>{const e=$('#toast');e.textContent=m;if(fn){const b=document
 async function sendMail(body){try{const ss=(await sb.auth.getSession()).data.session,r=await fetch(SB_URL+'/functions/v1/send-mail',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(ss?ss.access_token:'')},body:JSON.stringify(body)}),j=await r.json().catch(()=>({}));if(!r.ok||j.error)return{error:j.error||('HTTP '+r.status)};return j}catch(e){return{error:'Network error'}}}
 function mailToast(r,pre){if(r.error)return toast((pre||'')+'Email not sent: '+r.error);const p=[];if(r.client)p.push('client');if(r.team)p.push(r.team+' teammate'+(r.team>1?'s':''));toast(p.length?(pre||'')+'Email sent to '+p.join(' and '):(pre||'')+'No email address to send to')}
 async function inviteMember(){const v=prompt('Teammate email to invite (leave empty to just copy the link):');if(v===null)return;const em=v.trim();if(!em)return copy(location.href,'Link copied. Send it to teammates. Their email must be on the allowed list first.');if(!/^\S+@\S+\.\S+$/.test(em))return toast('That email does not look right');toast('Sending invite...');const r=await sendMail({kind:'invite',email:em,link:location.origin+location.pathname});toast(r.error?'Invite not sent: '+r.error:'Invite emailed to '+em+' and added to the team list')}
+async function removeMember(id){const nm=mn(id);if(!confirm('Remove '+nm+' from the team? They will lose access to the board. Their tasks stay on the board.'))return;toast('Removing...');const r=await sendMail({kind:'remove',id,link:location.origin+location.pathname});if(r.error)return toast('Could not remove: '+r.error);delete PEOPLE[id];try{rebuildM()}catch(e){}toast(nm+' removed from the team');try{render()}catch(e){}}
+/* ===== Remove a person: one dialog, four levels (task, project, team, board) + task handover ===== */
+let RMD=null;
+const rmIsOpen=t=>t.st!=='done'&&!t.hid;
+const RML={task:['#3b82f6','From a task','Unassign them from one task. Nothing else changes.'],project:['#f59e0b','From a project','Take them off every open task in one project. They stay in the team and on the board.'],team:['#f97316','From a team','They lose that team room: its board, standups and Git view. Their open tasks can be handed over.'],board:['#ef4444','From the board, permanently','Their sign-in is blocked and they leave every team. They must be invited again to come back.']};
+function rmInfo(id){const mine=vis().filter(t=>t.as===id&&rmIsOpen(t)),pjs={};mine.forEach(t=>{if(t.pj)pjs[t.pj]=(pjs[t.pj]||0)+1});
+ return {mine,pjs,tms:S.teams.filter(x=>isMem(x,id)&&(x.own===ME_ID||id===ME_ID)),board:!!(ME&&ME.isAdmin&&ME_ID!=='m'&&id!==ME_ID&&PEOPLE[id])}}
+function rmAff(d){const id=d.id;
+ if(d.scope==='project')return vis().filter(t=>t.as===id&&t.pj===d.pj&&rmIsOpen(t));
+ if(d.scope==='team'){const x=teamById(d.team);return x?S.tasks.filter(t=>String(t.tm)===String(x.id)&&t.as===id&&rmIsOpen(t)):[]}
+ if(d.scope==='board')return S.tasks.filter(t=>(t.as===id||t.rv===id)&&rmIsOpen(t));
+ return []}
+function rmCands(d){const x=d.scope==='team'?teamById(d.team):null;return M.filter(m=>m[0]!==d.id&&(!x||isMem(x,m[0])))}
+const rmCan=(t,to)=>!!to&&(!t.tm||!teamById(t.tm)||isMem(teamById(t.tm),to));
+function rmFix(){const d=RMD,X=rmInfo(d.id),pk=Object.keys(X.pjs);
+ if(!X.mine.some(t=>t.id===+d.task))d.task=X.mine[0]?X.mine[0].id:'';
+ if(!pk.includes(d.pj))d.pj=pk[0]||'';
+ if(!X.tms.some(x=>String(x.id)===String(d.team)))d.team=(X.tms.find(x=>(x.mem||[]).some(u=>u!==d.id))||X.tms[0]||{}).id||'';
+ const C=rmCands(d).map(m=>m[0]);
+ if(!(d.ho==='-'||d.ho==='='||C.includes(d.ho))){const x=teamById(d.team),pref=d.id===ME_ID?(x&&x.own!==d.id?x.own:''):ME_ID;d.ho=C.includes(pref)?pref:(C[0]||'-')}}
+function rmValid(){const d=RMD;if(!d||!d.scope||d.busy)return false;
+ if(d.scope==='task')return S.tasks.some(t=>t.id===+d.task&&t.as===d.id);
+ if(d.scope==='project')return !!d.pj;
+ if(d.scope==='team'){const x=teamById(d.team);return !!x&&isMem(x,d.id)&&(x.own===ME_ID||d.id===ME_ID)&&(x.mem||[]).some(u=>u!==d.id)}
+ if(d.scope==='board')return rmInfo(d.id).board&&String(d.txt).trim().toLowerCase()==='remove';
+ return false}
+function rmBtn(){const b=document.querySelector('#rmd [data-r="go"]');if(b)b.disabled=!rmValid()}
+const rmAgo=ts=>{const m=Math.max(1,Math.round((Date.now()-ts)/6e4));return m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'};
+function rmBrief(t){const sb=t.sub||[],dn=sb.filter(x=>x.d).length,nx=sb.find(x=>!x.d),sn=(ST.find(x=>x[0]===t.st)||[0,t.st])[1],ov=t.due&&t.due<TD&&t.st!=='done',c=(t.cm||[])[0],g=(t.log||[])[0];
+ const o=['TASK-'+t.id+' '+t.t,'  '+sn+', '+(t.pr||'Medium')+' priority, '+(t.due?'due '+fd(t.due)+(ov?' (overdue)':''):'no due date')+(t.pj?', '+t.pj:'')];
+ if(sb.length)o.push('  Steps '+dn+'/'+sb.length+' done'+(nx?'. Next: '+nx.t:''));
+ if(t.bl)o.push('  BLOCKED'+(t.blr?': '+t.blr:''));
+ if(t.branch)o.push('  Branch '+t.branch+' (PR '+(t.ps||'not started')+')');
+ if(t.rv)o.push('  Reviewer: '+mn(t.rv));
+ if(c&&c.t)o.push('  Last note by '+mn(c.a)+': '+String(c.t).replace(/\s+/g,' ').slice(0,140));
+ if(g)o.push('  Last change: '+g.x+(g.at?' ('+rmAgo(g.at)+')':''));
+ return o.join('\n')}
+const rmInline=t=>rmBrief(t).split('\n').slice(1).map(x=>x.trim()).join('. ');
+function rmHead(d,L,to,place){const id=d.id,wk=Date.now()-6048e5,tm=d.scope==='team'?String(d.team):'',
+ cnt=ST.filter(x=>x[0]!=='done').map(x=>[x[1],L.filter(t=>t.st===x[0]).length]).filter(x=>x[1]).map(x=>x[1]+' '+x[0]).join(', '),
+ ls=S.stand.filter(x=>x.m===id&&(!tm||String(x.tm)===tm)).sort((p,q)=>p.d>q.d?1:-1).pop(),
+ dn=S.tasks.filter(t=>t.as===id&&t.st==='done'&&t.u>wk&&(!tm||String(t.tm)===tm)).length;
+ return ['HANDOVER: '+mn(id)+' - '+place,'Date: '+fd(TD)+' | Open tasks: '+L.length+(cnt?' ('+cnt+')':'')+' | Done in the last 7 days: '+dn,'Handed over to: '+(to?mn(to):'nobody (left Unassigned)')].concat(ls?['Last standup ('+fd(ls.d)+'): '+(ls.t||'-')+(ls.b?' | Blocked: '+ls.b:'')]:[]).join('\n')}
+function rmDraw(k0){const d=RMD,o=$('#rmd');if(!d||!o)return;rmFix();
+ const id=d.id,nm=mn(id),X=rmInfo(id),pk=Object.keys(X.pjs),tm=teamById(d.team),pl=k=>k+' open task'+(k===1?'':'s');
+ const off={task:X.mine.length?'':'They have no open tasks.',project:pk.length?'':'None of their open tasks has a project.',team:X.tms.length?'':'Only the team owner can remove others. Anyone can leave a team themselves.',board:X.board?'':'Only admins can do this, and not for themselves.'};
+ const last=x=>!(x.mem||[]).some(u=>u!==id),L=rmAff(d),mine=L.filter(t=>t.as===id);
+ const ho=mine.length?`<small>Their ${pl(mine.length)}</small><select data-r="ho" aria-label="What happens to their open tasks">${rmCands(d).map(m=>`<option value="${esc(m[0])}"${d.ho===m[0]?' selected':''}>Hand over to ${esc(m[1])}</option>`).join('')}<option value="-"${d.ho==='-'?' selected':''}>Leave Unassigned</option><option value="="${d.ho==='='?' selected':''}>Keep assigned to ${esc(nm)}</option></select>`:'<small>They have no open tasks here.</small>';
+ const body={
+  task:`<select data-r="task" aria-label="Task">${X.mine.map(t=>`<option value="${t.id}"${+d.task===t.id?' selected':''}>TASK-${t.id}: ${esc(String(t.t).slice(0,60))}</option>`).join('')}</select>`,
+  project:`<select data-r="pj" aria-label="Project">${pk.map(q=>`<option value="${esc(q)}"${d.pj===q?' selected':''}>${esc(q)} (${X.pjs[q]} open)</option>`).join('')}</select>${ho}`,
+  team:`<select data-r="team" aria-label="Team">${X.tms.map(x=>`<option value="${esc(x.id)}"${String(d.team)===String(x.id)?' selected':''}${last(x)?' disabled':''}>${esc(x.n)}${last(x)?' (last member)':''}</option>`).join('')}</select>${ho}`,
+  board:`${ho}<input type="text" data-r="txt" value="${esc(d.txt)}" placeholder="Type remove to confirm" autocomplete="off" aria-label="Type remove to confirm">`};
+ const card=k=>{const r=RML[k],dis=off[k],on=d.scope===k&&!dis;return `<div class="rmc${on?' on':''}${dis?' off':''}" style="--c:${r[0]}"><label class="rmr"><input type="radio" name="rms" value="${k}"${on?' checked':''}${dis?' disabled':''}><span><b>${r[1]}</b><small>${esc(dis||r[2])}</small></span></label>${on?`<div class="rmb">${body[k]}</div>`:''}</div>`};
+ const tl=()=>{if(!mine.length)return 'No open tasks are affected.';
+  if(d.ho==='=')return pl(mine.length)+' stay assigned to '+nm+'.';
+  if(d.ho==='-')return pl(mine.length)+' become Unassigned. A summary is still created.';
+  const ok=mine.filter(t=>rmCan(t,d.ho)).length,bad=mine.length-ok;
+  return (ok===mine.length?pl(ok)+' are handed to '+mn(d.ho):ok+' of '+pl(mine.length)+' are handed to '+mn(d.ho))+'. A summary is created and saved on each task.'+(bad?' '+bad+' stay Unassigned because '+mn(d.ho)+' is not in their team.':'')};
+ let sm='';
+ if(d.scope==='task')sm=nm+' will be unassigned from TASK-'+d.task+'. The task stays on the board.';
+ else if(d.scope==='project')sm=nm+' leaves project '+d.pj+'. '+tl();
+ else if(d.scope==='team'&&tm)sm=(id===ME_ID?'You leave ':nm+' leaves ')+tm.n+'. '+tl();
+ else if(d.scope==='board')sm=nm+' loses all access. '+tl()+' This cannot be undone.';
+ const lab={task:'Remove from task',project:'Remove from project',team:id===ME_ID?'Leave team':'Remove from team',board:'Remove permanently'}[d.scope]||'Remove',ttl=id===ME_ID?'Step back':'Remove '+nm,sub=id===ME_ID?'Leaving? Pick the team and hand your open tasks to a teammate. A summary is created.':'Choose how far, from smallest to biggest. Nothing changes until you confirm.';
+ o.innerHTML=`<div class="rmm" role="dialog" aria-modal="true" aria-label="${esc(ttl)}"><div class="rmh"><div>${av(id,36)}<div><b style="font-size:16px">${esc(ttl)}</b><small>${esc(sub)}</small></div></div><button data-r="x" aria-label="Close">${ic('x',18)}</button></div>${['task','project','team','board'].map(card).join('')}${sm?`<div class="rmx">${esc(sm)}</div>`:''}<div class="rmf"><button class="bo" data-r="x">Cancel</button><button class="pr${d.scope==='board'?' dg':''}" data-r="go" disabled>${lab}</button></div></div>`;
+ rmBtn();
+ if(k0){const e=k0==='rms'?o.querySelector('input[name=rms]:checked'):o.querySelector('[data-r="'+k0+'"]');if(e){e.focus();if(e.type==='text'){const n=e.value.length;try{e.setSelectionRange(n,n)}catch(_){}}}}}
+function rmEl(){let o=$('#rmd');if(!o){o=document.createElement('div');o.id='rmd';document.body.appendChild(o);['click','change','input','keydown'].forEach(v=>o.addEventListener(v,rmEv))}return o}
+function rmClose(){const o=$('#rmd');if(o)o.remove();RMD=null}
+function rmShow(text,note){const o=rmEl();RMD={sum:text};
+ o.innerHTML=`<div class="rmm" role="dialog" aria-modal="true" aria-label="Handover summary"><div class="rmh"><div><div><b style="font-size:16px">Handover summary</b><small>${esc(note||'Saved on each task as a comment. Copy it to share anywhere.')}</small></div></div><button data-r="x" aria-label="Close">${ic('x',18)}</button></div><pre class="rmp">${esc(text)}</pre><div class="rmf"><button class="bo" data-r="cp">Copy summary</button><button class="pr" data-r="x">Done</button></div></div>`;
+ const b=o.querySelector('[data-r="cp"]');if(b)b.focus()}
+function rmEv(e){e.stopPropagation();const d=RMD;if(!d)return;const t=e.target;
+ if(e.type==='keydown'){if(e.key==='Escape')rmClose();else if(e.key==='Enter'&&!e.isComposing&&t.dataset&&t.dataset.r==='txt'&&rmValid()){e.preventDefault();rmGo()}return}
+ if(e.type==='click'){if(t.id==='rmd'||t.closest('[data-r="x"]'))return rmClose();if(t.closest('[data-r="cp"]'))return copy(d.sum,'Summary copied');const g=t.closest('[data-r="go"]');if(g&&!g.disabled)rmGo();return}
+ if(e.type==='input'){if(t.dataset.r==='txt'){d.txt=t.value;rmBtn()}return}
+ if(e.type==='change'){let k=t.dataset.r;
+  if(t.name==='rms'){d.scope=t.value;k='rms'}else if(k==='task')d.task=t.value;else if(k==='pj')d.pj=t.value;else if(k==='team')d.team=t.value;else if(k==='ho')d.ho=t.value;else return;
+  rmDraw(k)}}
+function rmOpenDlg(id,scope){if(!id)return;const X=rmInfo(id);
+ RMD={id,scope:scope||'',task:X.mine[0]?X.mine[0].id:'',pj:Object.keys(X.pjs)[0]||'',team:String(TEAM||''),ho:'',txt:'',busy:false};
+ const o=rmEl();rmDraw();const f=o.querySelector('input[type=radio]:checked')||o.querySelector('input[type=radio]:not(:disabled)');if(f)f.focus()}
+async function rmGo(){if(!rmValid())return;const d=RMD,id=d.id,nm=mn(id),now=Date.now(),sc=d.scope;
+ const pl=k=>k+' task'+(k===1?'':'s');
+ const res=r=>{if(!r.mine.length)return '';const a=[],u=r.mine.length-r.handed.length;if(r.handed.length)a.push(pl(r.handed.length)+' handed to '+mn(r.to));if(u)a.push(pl(u)+' unassigned');return ' ('+a.join(', ')+')'};
+ const pings=r=>r.handed.filter(t=>t.pr==='High'&&r.to!==ME_ID).forEach(t=>pingHigh(t.id,t.cr));
+ /* hand over (or unassign) their open tasks, write the summary, leave a comment on every task */
+ const apply=(why,place,rv)=>{
+  const keep=d.ho==='=',to=(d.ho&&d.ho!=='-'&&!keep)?d.ho:'',L=keep?[]:rmAff(d),mine=L.filter(t=>t.as===id),handed=mine.filter(t=>rmCan(t,to)),left=mine.filter(t=>!rmCan(t,to));
+  const text=mine.length?rmHead(d,mine,handed.length?to:'',place)+'\n\nTasks:\n'+mine.map(rmBrief).join('\n\n')+(to&&left.length?'\n\nNot handed over ('+mn(to)+' is not in their team): '+left.map(t=>'TASK-'+t.id).join(', '):''):'';
+  L.forEach(t=>{const h=handed.includes(t);
+   if(t.as===id){const inl=rmInline(t);t.cm=t.cm||[];t.cm.unshift({a:ME_ID,t:(h?'Handover from '+nm+' to '+mn(to)+'. ':nm+' stepped away from this task, it is now Unassigned. ')+inl,w:'Just now',at:now,men:h?[to]:[]});t.as=h?to:''}
+   if(rv&&t.rv===id)t.rv='';
+   t.u=now;t.log=[{w:ME_ID,x:h?'handed over from '+nm+' to '+mn(to):'removed '+nm+' ('+why+')',at:now},...(t.log||[])].slice(0,40);
+   if(h&&t.pr==='High'&&to!==ME_ID)t.hal={to,by:ME_ID,at:now}});
+  return {L,mine,handed,left,to,text}};
+ if(sc==='task'){const t=S.tasks.find(x=>x.id===+d.task);mark([t.id]);t.as='';t.u=now;t.log=[{w:ME_ID,x:'removed '+nm+' (unassigned from this task)',at:now},...(t.log||[])].slice(0,40);save();rmClose();render();toast(nm+' removed from TASK-'+t.id,undo)}
+ else if(sc==='project'){const L0=rmAff(d);mark(L0.map(t=>t.id));const r=apply('project '+d.pj,'removed from project '+d.pj,false);save();rmClose();render();pings(r);toast(nm+' removed from '+d.pj+res(r),L0.length?undo:null);if(r.text)rmShow(r.text)}
+ else if(sc==='team'){const x=teamById(d.team),r=apply('team '+x.n,(id===ME_ID?'left ':'removed from ')+x.n,false);
+  x.mem=(x.mem||[]).filter(u=>u!==id);if(x.own===id)x.own=x.mem[0];
+  let posted=false;if(id===ME_ID&&r.mine.length){S.stand.push({id:uid(),m:id,y:'Handover: left '+x.n,t:((r.handed.length?'Open tasks go to '+mn(r.to)+': ':'Open tasks are now Unassigned: ')+r.mine.map(t=>'TASK-'+t.id+' '+t.t).join(', ')).slice(0,300),b:'',d:TD,tm:x.id});posted=true}
+  save();rmClose();pings(r);
+  if(id===ME_ID&&String(TEAM)===String(x.id))setTeam('');else render();
+  toast(id===ME_ID?'You left '+x.n+res(r):nm+' removed from '+x.n+res(r));
+  if(r.text)rmShow(r.text,posted?'Saved on each task as a comment and posted to the team standup. Copy it to share anywhere.':'')}
+ else if(sc==='board'){d.busy=true;rmBtn();toast('Removing...');
+  let r0;try{r0=await sendMail({kind:'remove',id,link:location.origin+location.pathname})}catch(e){r0={error:String(e&&e.message||e)}}
+  if(!r0||r0.error){d.busy=false;rmBtn();return toast('Could not remove: '+((r0&&r0.error)||'unknown error'))}
+  const r=apply('board','removed from the board',true);
+  S.teams.forEach(x=>{if((x.mem||[]).includes(id)&&x.mem.some(u=>u!==id)){x.mem=x.mem.filter(u=>u!==id);if(x.own===id)x.own=x.mem[0]}});
+  delete PEOPLE[id];try{rebuildM()}catch(e){}save();rmClose();pings(r);try{render()}catch(e){}toast(nm+' removed from the board'+res(r));if(r.text)rmShow(r.text)}}
 async function copy(x,m){try{await navigator.clipboard.writeText(x);toast(m||'Copied')}catch(e){toast('Copy is blocked here. Select the text and copy it manually.')}}
 const lk=u=>/^https?:\/\//.test(u||'')?`<a href="${esc(u)}" target="_blank" rel="noopener">Open PR</a>`:'';
 const GIT='git checkout -b feature/<task-name>\ngit add .\ngit commit -m "feat: <what changed>"\ngit push -u origin feature/<task-name>\n# Open a pull request on GitHub, ask a teammate to review, then merge';
@@ -723,8 +844,8 @@ function vTeam(){const wk=Date.now()-6048e5,ct=CT(),V=vis(),mine=myTeams(),mem=R
  const tl=mine.map(x=>{const k=S.tasks.filter(t=>String(t.tm)===String(x.id)&&!t.hid&&t.st!=='done').length,c=(x.mem||[]).length;return `<div class="rc"><i class="rci" style="--c:${safeCol(x.c)}">${esc(init(x.n))}</i><div><b>${esc(x.n)}</b><small>${c} member${c===1?'':'s'}, ${k} open task${k===1?'':'s'}</small></div><button class="bo" data-a="room" data-id="${esc(x.id)}">${String(x.id)===String(TEAM)?'Viewing':'Open'}</button></div>`}).join('');
  const rooms=`<div class="bx"><b>Team rooms</b><small>Each room is one project with its own members, board, standups and Git view. Rooms you belong to are listed in the sidebar.</small><div class="rcl">${tl||'<small>You are not in a team room yet.</small>'}</div><div class="ctr"><input id="ntn" maxlength="40" placeholder="New team name, for example Mobile app" value="${esc(DRAFT.ntn)}" aria-label="New team name"><button class="pr" data-a="mkteam">${ic('plus',15)}Create team</button></div></div>`;
  const others=ct?M.filter(m=>!mem.some(x=>x[0]===m[0])):[];
- const manage=ct?`<div class="bx"><b>${esc(ct.n)}: members</b><div class="chips" style="margin:10px 0">${mem.map(m=>`<span class="chip" style="--c:${safeCol(m[2])}">${av(m[0],20)}${esc(m[1])}${ct.own===m[0]?' (owner)':''}${(ct.own===ME_ID||m[0]===ME_ID)&&mem.length>1?`<button data-a="tmrm" data-u="${esc(m[0])}" aria-label="Remove ${esc(m[1])}">${ic('x',13)}</button>`:''}</span>`).join('')}</div>${others.length?`<div class="ctr"><select id="tma" aria-label="Person to add">${others.map(m=>`<option value="${esc(m[0])}">${esc(m[1])}</option>`).join('')}</select><button class="pr" data-a="tmadd">Add to team</button></div>`:'<small>Everyone who has signed in is already in this team.</small>'}<div class="ctr" style="margin-top:12px"><input id="tmn" maxlength="40" value="${esc(DRAFT.tmn!=null?DRAFT.tmn:ct.n)}" aria-label="Team name"><button class="bo" data-a="tmren">Rename</button>${ct.own===ME_ID?'<button class="bo" data-a="tmdel" style="color:#ef4444">Delete team</button>':''}</div><small style="margin-top:8px">People need to sign in to Team Tracker once before they can be added.</small></div>`:'';
- return rooms+manage+`<div class="gr">${mem.map(m=>{const T=V.filter(t=>t.as===m[0]),c=k=>T.filter(t=>t.st===k).length,ls=S.stand.filter(s=>s.m===m[0]&&(!TEAM||String(s.tm)===String(TEAM))).map(s=>s.d).sort().pop(),u=S.usage.find(x=>x.m===m[0]&&x.d===TD)||{};return `<div class="bx"><div style="display:flex;gap:10px;align-items:center">${av(m[0],40)}<div><b>${esc(m[1])}</b><small>${T.length} tasks assigned</small></div></div><div class="wb" style="margin:12px 0">${ST.map(s=>`<i style="flex:${c(s[0])};background:${s[2]}"></i>`).join('')}</div><div class="tg">${ST.map(s=>`<span class="tag" style="--c:${s[2]}">${s[1]} ${c(s[0])}</span>`).join('')}</div><small>Finished this week: ${T.filter(t=>t.st==='done'&&t.u>wk).length}</small><small>Last standup: ${ls?fd(ls):'none yet'}</small><small${u.hit?' style="color:#ef4444"':''}>Claude today: ${+u.n||0} chats${u.hit?', limit reached':''}</small>${m[0]===ME_ID?`<div style="display:flex;gap:6px;margin-top:8px"><button class="bo" data-a="uadd">+1 chat</button><button class="bo" data-a="uhit">${u.hit?'Limit cleared':'Limit reached'}</button></div>`:''}</div>`}).join('')}</div>`}
+ const manage=ct?`<div class="bx"><b>${esc(ct.n)}: members</b><div class="chips" style="margin:10px 0">${mem.map(m=>`<span class="chip" style="--c:${safeCol(m[2])}">${av(m[0],20)}${esc(m[1])}${ct.own===m[0]?' (owner)':''}${(ct.own===ME_ID||m[0]===ME_ID)&&mem.length>1?`<button data-a="rmo" data-s="team" data-id="${esc(m[0])}" aria-label="Remove ${esc(m[1])} from team">${ic('x',13)}</button>`:''}</span>`).join('')}</div>${others.length?`<div class="ctr"><select id="tma" aria-label="Person to add">${others.map(m=>`<option value="${esc(m[0])}">${esc(m[1])}</option>`).join('')}</select><button class="pr" data-a="tmadd">Add to team</button></div>`:'<small>Everyone who has signed in is already in this team.</small>'}<div class="ctr" style="margin-top:12px"><input id="tmn" maxlength="40" value="${esc(DRAFT.tmn!=null?DRAFT.tmn:ct.n)}" aria-label="Team name"><button class="bo" data-a="tmren">Rename</button>${ct.own===ME_ID?'<button class="bo" data-a="tmdel" style="color:#ef4444">Delete team</button>':''}</div><small style="margin-top:8px">People need to sign in to Team Tracker once before they can be added.</small></div>`:'';
+ return rooms+manage+`<div class="gr">${mem.map(m=>{const T=V.filter(t=>t.as===m[0]),c=k=>T.filter(t=>t.st===k).length,ls=S.stand.filter(s=>s.m===m[0]&&(!TEAM||String(s.tm)===String(TEAM))).map(s=>s.d).sort().pop(),u=S.usage.find(x=>x.m===m[0]&&x.d===TD)||{};return `<div class="bx"><div style="display:flex;gap:10px;align-items:center">${av(m[0],40)}<div><b>${esc(m[1])}</b><small>${T.length} tasks assigned</small></div></div><div class="wb" style="margin:12px 0">${ST.map(s=>`<i style="flex:${c(s[0])};background:${s[2]}"></i>`).join('')}</div><div class="tg">${ST.map(s=>`<span class="tag" style="--c:${s[2]}">${s[1]} ${c(s[0])}</span>`).join('')}</div><small>Finished this week: ${T.filter(t=>t.st==='done'&&t.u>wk).length}</small><small>Last standup: ${ls?fd(ls):'none yet'}</small><small${u.hit?' style="color:#ef4444"':''}>Claude today: ${+u.n||0} chats${u.hit?', limit reached':''}</small><div style="margin-top:8px"><button class="bo" data-a="rmo" data-id="${esc(m[0])}">${ic('x',14)}${m[0]===ME_ID?'Step back...':'Remove...'}</button></div>${m[0]===ME_ID?`<div style="display:flex;gap:6px;margin-top:8px"><button class="bo" data-a="uadd">+1 chat</button><button class="bo" data-a="uhit">${u.hit?'Limit cleared':'Limit reached'}</button></div>`:''}</div>`}).join('')}</div>`}
 function vGit(){const T=vis().filter(t=>t.branch),w=[...vis().filter(t=>t.st==='doing'&&!t.branch).map(t=>`"${t.t}" is in progress but has no branch`),...vis().filter(t=>t.ps==='open'&&!t.rv).map(t=>`"${t.t}" has an open PR but no reviewer`),...vis().filter(t=>t.st==='done'&&t.branch&&t.ps!=='merged').map(t=>`"${t.t}" is done but its PR is not merged`)];
  return `${syncBox()}${w.length?`<div class="bx"><b>Needs attention</b>${w.map(x=>`<div class="wr">${ic('alert',14)} ${esc(x)}</div>`).join('')}</div>`:''}<div class="lst" style="margin-bottom:12px"><table><tr><th>Branch</th><th>Task</th><th>Owner</th><th>Status</th><th>PR</th><th>Reviewer</th></tr>${T.map(t=>`<tr data-id="${t.id}"><td><code>${esc(t.branch)}</code></td><td>${esc(t.t)}</td><td>${esc(mn(t.as))}</td><td>${ST.find(s=>s[0]===t.st)[1]}</td><td>${lk(t.prUrl)} ${t.ps==='merged'?'Merged':t.ps==='open'?'Open':'No PR'}</td><td>${t.rv?esc(mn(t.rv)):'None'}</td></tr>`).join('')||'<tr><td colspan="6">No branches yet. Open a task and add its branch name.</td></tr>'}</table></div><div class="bx"><b>Standard git flow</b><pre>${esc(GIT)}</pre><button class="bo" data-a="copy" data-txt="${esc(GIT)}">${ic('file',14)}Copy commands</button></div>`}
 function vCtx(){return `<div class="bx"><b>PROJECT_CONTEXT.md</b><small>Paste this at the start of every new Claude chat so every teammate gets the same background.</small><textarea id="cx" rows="12" placeholder="${esc(TPL)}">${esc(DRAFT.cx!=null?DRAFT.cx:S.ctx)}</textarea><div style="display:flex;gap:8px;margin-top:10px"><button class="pr" data-a="savectx">Save context</button><button class="bo" data-a="copyc">Copy</button></div></div><div class="bx"><b>Prompt library</b><input id="pt2" placeholder="Title, for example: Build an API endpoint" value="${esc(DRAFT.pt2)}"><textarea id="px" rows="3" placeholder="Prompt text">${esc(DRAFT.px)}</textarea><div style="margin-top:10px"><button class="pr" data-a="addp">Add prompt</button></div></div>${S.prompts.map(p=>`<div class="bx"><b>${esc(p.t)}</b><pre>${esc(p.x)}</pre><div style="display:flex;gap:8px"><button class="bo" data-a="copy" data-txt="${esc(p.x)}">Copy</button><button class="bo" data-a="pwt" data-id="${p.id}">Copy with task</button><button class="bo" data-a="rate" data-id="${p.id}" data-v="up" style="${my(p)===1?'border-color:var(--ac);color:var(--ac)':''}">Helpful ${vc(p,1)}</button><button class="bo" data-a="rate" data-id="${p.id}" data-v="dn" style="${my(p)===-1?'border-color:var(--ac);color:var(--ac)':''}">Not helpful ${vc(p,-1)}</button><button class="bo" data-a="delp" data-id="${p.id}">Delete</button></div></div>`).join('')}`}
@@ -774,7 +895,7 @@ const dsoon=t=>t.st!=='done'&&t.due>=TD&&t.due<=plus(2),tm2=x=>new Date(x).toLoc
 const mark=ids=>{UNDO=(ids||[]).map(id=>S.tasks.find(t=>t.id===id)).filter(Boolean).map(t=>JSON.parse(JSON.stringify(t)))},
 undo=()=>{if(!UNDO)return;UNDO.forEach(t=>{const i=S.tasks.findIndex(x=>x.id===t.id);if(i>=0)S.tasks[i]=t;else S.tasks.push(t)});S.tasks.sort((a,b)=>a.id-b.id);UNDO=null;save();render()};
 function chk(t,st){if(st==='done'&&CFG.rev){if(!t.rv)return 'Add a reviewer before moving this task to Done.';if(t.branch&&t.ps!=='merged')return 'Mark the PR as merged before moving this task to Done.'}
- if(st==='doing'&&t.st!=='doing'&&CFG.wip&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip)return mn(t.as)+' already has '+CFG.wip+' tasks in progress.';return ''}
+ if(st==='doing'&&t.st!=='doing'&&CFG.wip&&t.as&&S.tasks.filter(x=>x.as===t.as&&x.st==='doing'&&x.id!==t.id).length>=CFG.wip)return mn(t.as)+' already has '+CFG.wip+' tasks in progress.';return ''}
 function vSet(){return `${ME&&ME.hasRole===false?'<div class="bx"><b>Roles are not set up yet</b><small>Right now every member can delete any task. Run setup-roles.sql once in the Supabase SQL editor to make only admins (and the person who created a task) able to delete it.</small></div>':''}${vAlert()}<div class="bx"><b>Workflow rules</b><label class="sb"><input type="checkbox" id="crev"${CFG.rev?' checked':''}><span>Done needs a reviewer, and a merged PR when the task has a branch</span></label><label style="display:block;margin-top:8px;color:var(--mut);font-size:12px">Max tasks in progress per person (0 means no limit)<input id="cwip" type="number" min="0" max="20" value="${CFG.wip}" style="display:block;width:100px;margin-top:4px;padding:8px"></label></div><div class="bx"><b>Backup</b><small>Download a copy of everything on this board.</small><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="bo" data-a="exj">Download JSON</button><button class="bo" data-a="exc">Download tasks as CSV</button></div></div><div class="bx"><b>Account</b><small>${esc((ME&&ME.email)||"")}</small><div style="margin-top:10px"><button class="bo" data-a="lo">Sign out</button></div></div>`}
 async function expo(k){if(!DL)return toast('Downloads are not available in this view.');
  const q=v=>{let s=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'};
@@ -858,6 +979,7 @@ document.addEventListener('click',e=>{
   else if(a==='dcancel'){NT=null;sel=null;render();toast('New task discarded')}
   else if(a==='cmp')completeTask(+b.dataset.id||(t&&t.id));
   else if(a==='unhide'&&t){upd(t.id,x=>{x.hid=false});toast('Task is back on the board')}
+  else if(a==='unas'&&t){const nm=mn(t.as);upd(t.id,x=>{x.as=''});toast(nm+' removed from this task. Still in the team.')}
   else if(a==='hidt'){F.hid=!F.hid;render()}
   else if(a==='att'){const f=$('#cfile');if(f)f.click()}
   else if(a==='rmatt'){PATT.items=PATT.items.filter(x=>String(x.id)!==b.dataset.id);drawAtt()}
@@ -872,6 +994,7 @@ document.addEventListener('click',e=>{
   else if(a==='edd'&&t){if(edD){const f=$('#pds'),v=f?f.value.trim():'';edD=false;upd(t.id,x=>x.d=v||x.d)}else{edD=true;panel();const f=$('#pds');f&&f.focus()}}
   else if(a==='send'&&t)sendC();
   else if(a==='inv')inviteMember();
+  else if(a==='mrem')rmOpenDlg(b.dataset.id,'board');else if(a==='rmo')rmOpenDlg(b.dataset.id,b.dataset.s||'');
   else if(a==='autobr'&&t)upd(t.id,x=>x.branch='feature/'+x.t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''));
   else if(a==='copy')copy(b.dataset.txt);else if(a==='copyc')copy($('#cx').value);
   else if(a==='savectx'){S.ctx=$('#cx').value;delete DRAFT.cx;save();toast('Context saved')}
@@ -906,7 +1029,7 @@ document.addEventListener('change',e=>{const i=e.target.id,t=cur(),v=e.target.va
  else if(i==='so'){F.so=v;render()}
  else if(i==='crev'){CFG.rev=e.target.checked;save();toast('Rule saved')}else if(i==='cwip'){CFG.wip=Math.max(0,Math.min(20,+v||0));save();toast('Rule saved')}
  else if(!t)return;
- else if(i==='pt')upd(t.id,x=>x.t=v.trim()||x.t);else if(i==='ps'){const m=chk(t,v);if(m){toast(m);panel()}else upd(t.id,x=>x.st=v)}else if(i==='pp')upd(t.id,x=>x.pr=v);else if(i==='pa'){const m=t.st==='doing'?wipMsg({id:t.id,as:v}):'';if(m){toast(m);panel()}else upd(t.id,x=>x.as=v)}else if(i==='pd')upd(t.id,x=>x.due=v);else if(i==='ppj')upd(t.id,x=>{x.pj=v.trim()});else if(i==='ptm'){const nx=teamById(v);upd(t.id,x=>{x.tm=v});if(nx&&t.as&&!isMem(nx,t.as))toast(mn(t.as)+' is not in '+nx.n+'. Pick a team member as assignee.')}
+ else if(i==='pt')upd(t.id,x=>x.t=v.trim()||x.t);else if(i==='ps'){const m=chk(t,v);if(m){toast(m);panel()}else upd(t.id,x=>x.st=v)}else if(i==='pp')upd(t.id,x=>x.pr=v);else if(i==='pa'){const m=t.st==='doing'&&v?wipMsg({id:t.id,as:v}):'';if(m){toast(m);panel()}else upd(t.id,x=>x.as=v)}else if(i==='pd')upd(t.id,x=>x.due=v);else if(i==='ppj')upd(t.id,x=>{x.pj=v.trim()});else if(i==='ptm'){const nx=teamById(v);upd(t.id,x=>{x.tm=v});if(nx&&t.as&&!isMem(nx,t.as))toast(mn(t.as)+' is not in '+nx.n+'. Pick a team member as assignee.')}
  else if(i==='plb'&&v)upd(t.id,x=>x.tags.push(v));else if(i==='gb')upd(t.id,x=>x.branch=v.trim());else if(i==='gl')upd(t.id,x=>x.prUrl=v.trim());else if(i==='gp')upd(t.id,x=>x.ps=v);else if(i==='pbl')upd(t.id,x=>x.bl=e.target.checked);else if(i==='pbr')upd(t.id,x=>x.blr=v.trim());else if(i==='gr')upd(t.id,x=>x.rv=v);
  else if(e.target.dataset.a==='sub'){const si=+e.target.dataset.i,ck=e.target.checked;upd(t.id,x=>{if(x.sub[si])x.sub[si].d=ck})}
  else if(i==='pds'){const d=v.trim();edD=false;upd(t.id,x=>x.d=d||x.d)}
