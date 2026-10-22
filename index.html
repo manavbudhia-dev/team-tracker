@@ -710,6 +710,9 @@ function render(){
  document.querySelectorAll('.nv[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===(view==='board'&&F.as===ME_ID&&F.myv?'my':view)));
 }
 const toast=(m,fn)=>{const e=$('#toast');e.textContent=m;if(fn){const b=document.createElement('button');b.textContent='Undo';b.style.cssText='margin-left:10px;padding:2px 10px';b.onclick=()=>{fn();e.style.display='none'};e.append(b)}e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',fn?7000:3400)};
+async function sendMail(body){try{const ss=(await sb.auth.getSession()).data.session,r=await fetch(SB_URL+'/functions/v1/send-mail',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(ss?ss.access_token:'')},body:JSON.stringify(body)}),j=await r.json().catch(()=>({}));if(!r.ok||j.error)return{error:j.error||('HTTP '+r.status)};return j}catch(e){return{error:'Network error'}}}
+function mailToast(r,pre){if(r.error)return toast((pre||'')+'Email not sent: '+r.error);const p=[];if(r.client)p.push('client');if(r.team)p.push(r.team+' teammate'+(r.team>1?'s':''));toast(p.length?(pre||'')+'Email sent to '+p.join(' and '):(pre||'')+'No email address to send to')}
+async function inviteMember(){const v=prompt('Teammate email to invite (leave empty to just copy the link):');if(v===null)return;const em=v.trim();if(!em)return copy(location.href,'Link copied. Send it to teammates. Their email must be on the allowed list first.');if(!/^\S+@\S+\.\S+$/.test(em))return toast('That email does not look right');toast('Sending invite...');const r=await sendMail({kind:'invite',email:em,link:location.origin+location.pathname});toast(r.error?'Invite not sent: '+r.error:'Invite emailed to '+em+' and added to the team list')}
 async function copy(x,m){try{await navigator.clipboard.writeText(x);toast(m||'Copied')}catch(e){toast('Copy is blocked here. Select the text and copy it manually.')}}
 const lk=u=>/^https?:\/\//.test(u||'')?`<a href="${esc(u)}" target="_blank" rel="noopener">Open PR</a>`:'';
 const GIT='git checkout -b feature/<task-name>\ngit add .\ngit commit -m "feat: <what changed>"\ngit push -u origin feature/<task-name>\n# Open a pull request on GitHub, ask a teammate to review, then merge';
@@ -868,7 +871,7 @@ document.addEventListener('click',e=>{
   else if(a==='usetg'){const i=$('#altg');if(i){i.value=b.dataset.id;DRAFT.altg=b.dataset.id}toast('Chat ID filled in. Press Save my alerts.')}
   else if(a==='edd'&&t){if(edD){const f=$('#pds'),v=f?f.value.trim():'';edD=false;upd(t.id,x=>x.d=v||x.d)}else{edD=true;panel();const f=$('#pds');f&&f.focus()}}
   else if(a==='send'&&t)sendC();
-  else if(a==='inv')copy(location.href,'Link copied. Send it to teammates. Their email must be on the allowed list first (see setup.sql).');
+  else if(a==='inv')inviteMember();
   else if(a==='autobr'&&t)upd(t.id,x=>x.branch='feature/'+x.t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''));
   else if(a==='copy')copy(b.dataset.txt);else if(a==='copyc')copy($('#cx').value);
   else if(a==='savectx'){S.ctx=$('#cx').value;delete DRAFT.cx;save();toast('Context saved')}
@@ -1134,6 +1137,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
    x.fr={by:ME_ID,at:now2,w};x.ul={t:tok,e:now2+14*864e5};(x.log=x.log||[]).unshift({w:ME_ID,x:'asked the client for files: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,160),at:now2});
    if(to.length)x.fn={ev:'req',by:ME_ID,to,at:now2,n:need}});
   ULF=false;delete DRAFT.uli;delete DRAFT.ule;delete ULC[t.id];try{await navigator.clipboard.writeText(ulUrl(tok));toast('Link created and copied. Send it to the client.')}catch(_){prompt('Send this link to the client',ulUrl(tok))}ulHook();
+  sendMail({kind:'files',token:tok,to,link:ulUrl(tok),task:'TASK-'+t.id+': '+String(t.t).slice(0,120)}).then(r=>mailToast(r));
   pingFiles(t.id,[...new Set([ME_ID,...to])],'req',['Needs: '+items.map(i=>i.label+' x'+i.n).join(', ').slice(0,200),'Client upload link: '+ulUrl(tok),'Requested by: '+mn(ME_ID),'Task is Blocked until the client sends them'],'Link created and copied. ')}
 });
 
@@ -1207,7 +1211,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-a^="
    if(r.error){b.disabled=false;return toast('Upload failed: '+r.error.message)}files.push({n:f.name.slice(0,100),p,k:f.type})}
   const r=await sb.from('design_reviews').insert({token:tok,task_id:t.id,title,files,client_email:/^\S+@\S+\.\S+$/.test($('#rwe').value.trim())?$('#rwe').value.trim():null,expires_at:new Date(Date.now()+30*864e5).toISOString()});
   if(r.error){b.disabled=false;return toast('Could not create review: '+r.error.message)}
-  upd(t.id,x=>{x.rl={t:tok,e:Date.now()+30*864e5}});RWF=false;delete ULC[t.id];try{await navigator.clipboard.writeText(rwUrl(tok));toast('Review link copied and sent to Slack/Telegram.')}catch(_){prompt('Send this link to the client',rwUrl(tok))}ulHook();pingFiles(t.id,[...new Set([ME_ID,t.as].filter(Boolean))],'rv',['Review link for the client: '+rwUrl(tok),'Title: '+title])}
+  upd(t.id,x=>{x.rl={t:tok,e:Date.now()+30*864e5}});RWF=false;delete ULC[t.id];try{await navigator.clipboard.writeText(rwUrl(tok));toast('Review link copied and sent to Slack/Telegram.')}catch(_){prompt('Send this link to the client',rwUrl(tok))}ulHook();sendMail({kind:'review',token:tok,to:[],link:rwUrl(tok),task:title}).then(r=>mailToast(r));pingFiles(t.id,[...new Set([ME_ID,t.as].filter(Boolean))],'rv',['Review link for the client: '+rwUrl(tok),'Title: '+title])}
 });
 const BIGN=60000,pendKey=()=>'tt-pend:'+ME_ID;
 function bigDirty(){const o=[];try{for(const c in KEY)for(const d of S[KEY[c]]){const j=cj(d);if(j.length>=BIGN&&R[c][String(d.id)]!==j)o.push({c,k:String(d.id),doc:d})}}catch(e){}return o}
