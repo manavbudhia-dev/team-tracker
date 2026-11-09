@@ -274,10 +274,10 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
 .rmx{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hv)}.rmf{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .rmf .pr.dg{background:#dc2626;border-color:#dc2626}.rmf .pr:disabled{opacity:.45;cursor:not-allowed}
 .rmp{white-space:pre-wrap;word-break:break-word;background:var(--hv);border-radius:10px;padding:12px;max-height:50vh;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0 0}.rmb small{color:var(--mut)}
-.stats{grid-template-columns:repeat(2,minmax(0,200px))!important}.stats .sc:nth-child(1),.stats .sc:nth-child(3),.stats .sc:nth-child(5),.stats .si{display:none}.stats .sc{padding:8px 14px}.tb:not(.more) .fx{display:none}
+.stats{grid-template-columns:repeat(2,minmax(0,200px))!important}.stats .sc:nth-child(1),.stats .sc:nth-child(3),.stats .sc:nth-child(5){display:none}.stats .sc{padding:8px 14px}.tb:not(.showf) .fx{display:none}
 #panel.nw .tabs,#panel.nw .tabs~*:not(.pf){display:none}#tools .nv{margin-left:12px}
 .flw{display:none}.card .lk{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 8px}.card .lk .lkh{flex:1;margin:0}.card .lk .lkbar,.card .lk .lks{display:none}.card .lk .lkb{margin:0}
-.stats{display:flex!important;gap:8px;margin-bottom:10px}.stats .sc{padding:5px 14px;border-radius:999px;min-height:0;width:auto}.stats .sc>div{display:flex;align-items:baseline;gap:8px}.stats .sc .num{font-size:15px;line-height:1}.stats .sc small:last-child{display:none}
+.stats{display:flex!important;gap:8px;margin-bottom:10px}.stats .sc{padding:5px 14px;border-radius:999px;min-height:0;width:auto}.stats .sc>div{display:flex;align-items:baseline;gap:8px}.stats .sc>.si{display:grid;place-items:center;width:28px;height:28px;min-width:28px}.stats .sc>.si svg{display:block;width:16px;height:16px}.stats .sc .num{font-size:15px;line-height:1}.stats .sc small:last-child{display:none}
 .card .lk .lkh{white-space:nowrap;display:flex;gap:8px;align-items:baseline}.card .lk .lkp{white-space:nowrap}
 .col:not(:has(.card))::after{content:"No tasks here. Drag one in or tap +";display:block;margin-top:14px;padding:22px 10px;border:1px dashed var(--bd);border-radius:10px;text-align:center;color:var(--mut);font-size:12px}
 .card p{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
@@ -318,7 +318,7 @@ label.fl:has(#fa){display:none}.rhl{border:0;background:none;padding:0;font:inhe
   <button class="ib dot" id="bell" aria-label="Notifications" data-i="bell"></button>
  </div>
  <div id="mn">
-  <div class="ttl"><div><h1><span id="ht">Team board</span> <span class="st" data-i="star" data-s="22"></span></h1><p id="hs">Track, manage, and ship work together.</p></div><div class="acts"><div class="stack" id="stk"></div>
+  <div class="ttl"><div><h1><span id="ht">Team board</span> <span class="st" data-i="star" data-s="22"></span></h1><p id="hs">Track, manage, and ship work together.</p></div><div class="acts"><div class="stack" id="stk"></div><button class="bo" id="delb" data-a="tmdel" style="display:none;color:#ef4444"><span data-i="trash" data-s="15"></span>Delete board</button>
    
    <div class="split"><button class="pr" data-a="new"><span data-i="plus"></span>New task</button><button class="pr ch" aria-label="New task in column"><span data-i="chev"></span><select id="nsel" aria-label="Create in column"><option value="">&nbsp;</option><option value="todo">To do</option><option value="doing">In progress</option><option value="review">In review</option><option value="done">Done</option></select></button></div></div>
   </div>
@@ -398,7 +398,7 @@ function memlist(){const e=$('#mlist');if(!e)return;const V=vis();
  e.innerHTML=RMEM().map(m=>{const k=V.filter(t=>(t.as===m[0]||(t.co||[]).includes(m[0]))&&t.st!=='done'&&!t.hid),b=k.filter(t=>t.bl).length;return `<button class="mrow${F.as===m[0]?' on':''}" data-a="mfil" data-id="${esc(m[0])}" title="Show only ${esc(m[1])}'s tasks">${av(m[0],28)}<span><b>${esc(m[1])}</b><small>${k.length} open${b?', '+b+' blocked':''}</small></span></button>`}).join('')}
 function rooms(){const e=$('#rooms');if(!e)return;{const d=$('#tools');if(d&&(view==='git'||view==='ctx'))d.hidden=false}
  e.innerHTML=`<button class="nv rm" data-a="room" data-id=""><i style="--c:#64748b">${ic('board',13)}</i><span class="nl">All teams</span></button>`+myTeams().map(x=>`<button class="nv rm${String(x.id)===String(TEAM)?' on2':''}" data-a="room" data-id="${esc(x.id)}" title="${esc(x.n)}"><i style="--c:${safeCol(x.c)}">${esc(init(x.n))}</i><span class="nl">${esc(x.n)}</span><em>${(x.mem||[]).length}</em></button>`).join('')}
-function hidBtn(){{const tb=$('.tb');if(tb&&(F.st||F.pr||F.due||F.lb)){tb.classList.add('more');const m=tb.querySelector('[data-a=mf]');if(m)m.textContent='Fewer filters'}}const b=$('#hidt');if(!b)return;const n=S.tasks.filter(t=>t.hid&&seeT(t)).length;b.innerHTML=ic('check',15)+'Completed'+(n?` <i>${n}</i>`:'');b.classList.toggle('on',!!F.hid)}
+function hidBtn(){{const tb=$('.tb');if(tb&&(F.st||F.pr||F.due||F.lb)){tb.classList.add('showf');const m=tb.querySelector('[data-a=mf]');if(m)m.textContent='Fewer filters'}}const b=$('#hidt');if(!b)return;const n=S.tasks.filter(t=>t.hid&&seeT(t)).length;b.innerHTML=ic('check',15)+'Completed'+(n?` <i>${n}</i>`:'');b.classList.toggle('on',!!F.hid)}
 function mkTeam(){const i=$('#ntn'),n=((i&&i.value)||'').trim().slice(0,40);if(!n)return toast('Give the team a name first');
  if(myTeams().some(x=>String(x.n).toLowerCase()===n.toLowerCase()))return toast('You already have a team called '+n);
  const id=uid();S.teams.push({id,n,c:PAL[S.teams.length%PAL.length],mem:[ME_ID],own:ME_ID,at:Date.now()});delete DRAFT.ntn;save();view='team';setTeam(id);toast(n+' created. Add its members below.')}
@@ -732,6 +732,7 @@ function render(){
  {const sg=TEAM+'|'+M.length+'|'+((CT()||{}).mem||[]).join();if(sg!==OSIG){OSIG=sg;opts()}}
  const H={board:['Team board','Track, manage, and ship work together.','Board'],standup:['Daily standup','Share what you did, what is next and what is blocking you.','Daily Standup'],team:['Members','Workload and progress for every member.','Members'],git:['Git & PRs','Branches and pull requests for every task.','Git & PRs'],ctx:['Context & prompts','Shared context to paste into every new Claude chat.','Context & Prompts'],set:['Settings','','Settings']}[view];
  const ct=CT();if(ct&&view==='board'){H[0]=ct.n+' board';H[1]='Tasks for this team room.'}else if(ct&&view==='team'){H[0]=ct.n;H[1]='Members and workload for this team.'}
+ $('#delb').style.display=ct&&view==='board'&&ct.own===ME_ID?'':'none';
  memlist();$('#ht').textContent=H[0];$('#hs').textContent=H[1];$('#bcn').textContent=H[2];$('#bct').textContent=ct?ct.n:'Engineering';
  ['#stats','.tb','#chips'].forEach(s=>$(s).style.display=view==='board'?'':'none');
  $('#stats').innerHTML=sf(stats);$('#chips').innerHTML=sf(chips);$('#main').innerHTML=sf(main,'<div class="bx"><b>This view could not be drawn</b><small>Some saved data looks damaged. Reload the page. If it keeps happening, open another view and tell the board owner.</small></div>');sf(panel);
@@ -1010,7 +1011,7 @@ document.addEventListener('click',e=>{
   else if(a==='mfil'){view='board';F.myv=false;sync('as',F.as===b.dataset.id?'':b.dataset.id)}
   else if(a==='coX'&&t)upd(t.id,x=>{x.co=(x.co||[]).filter(u=>u!==b.dataset.id)})
   else if(a==='tools'){const d=$('#tools');d.hidden=!d.hidden}
-  else if(a==='mf'){const e=$('.tb');e.classList.toggle('more');b.textContent=e.classList.contains('more')?'Fewer filters':'More filters'}
+  else if(a==='mf'){const e=$('.tb');e.classList.toggle('showf');b.textContent=e.classList.contains('showf')?'Fewer filters':'More filters'}
   else if(a==='unhide'&&t){upd(t.id,x=>{x.hid=false});toast('Task is back on the board')}
   else if(a==='unas'&&t){const nm=mn(t.as);upd(t.id,x=>{x.as=''});toast(nm+' removed from this task. Still in the team.')}
   else if(a==='hidt'){F.hid=!F.hid;render()}
